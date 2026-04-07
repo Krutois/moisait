@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+    <h1 class="page-title">{{ locale.statistics }}</h1>
+    <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <div class="glass-card p-6 text-center">
+            <div class="text-4xl mb-2"></div>
+            <div class="text-2xl font-bold" id="totalSessions">0</div>
+            <div class="text-gray-400">{{ locale.sessions }}</div>
+        </div>
+        <div class="glass-card p-6 text-center">
+            <div class="text-4xl mb-2"></div>
+            <div class="text-2xl font-bold" id="totalWords">0</div>
+            <div class="text-gray-400">{{ locale.words }}</div>
+        </div>
+        <div class="glass-card p-6 text-center">
+            <div class="text-4xl mb-2"></div>
+            <div class="text-2xl font-bold" id="totalDuration">0</div>
+            <div class="text-gray-400">{{ locale.minutes }}</div>
+        </div>
+    </div>
+    <div class="panel">
+        <h2 class="text-xl font-semibold mb-4">{{ locale.daily_activity }}</h2>
+        <canvas id="activityChart" height="200"></canvas>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadStats() {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('totalSessions').innerText = data.total_sessions;
+        document.getElementById('totalWords').innerText = data.total_words;
+        const minutes = Math.floor(data.total_duration / 60);
+        document.getElementById('totalDuration').innerText = minutes;
+        // Chart
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const daily = data.daily_stats;
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: daily.map(d => d.date),
+                datasets: [{
+                    label: '{{ locale.words }}',
+                    data: daily.map(d => d.words),
+                    borderColor: '#a855f7',
+                    backgroundColor: 'rgba(168,85,247,0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#ccc' } },
+                    y: { ticks: { color: '#ccc' } }
+                }
+            }
+        });
+    }
+    loadStats();
+</script>
+{% endblock %}

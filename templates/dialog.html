@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+    .dialogue-mode {
+        min-height: 100vh;
+        padding: 2rem;
+        background: transparent;
+    }
+    .dialogue-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    .speaker-card {
+        background: rgba(20,20,45,0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(168,85,247,0.3);
+        border-radius: 2rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.2,0.9,0.4,1.1);
+    }
+    .speaker-card.active {
+        border-color: #a855f7;
+        box-shadow: 0 0 20px rgba(168,85,247,0.4);
+        transform: scale(1.01);
+        background: rgba(168,85,247,0.1);
+    }
+    .speaker-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .speaker-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a855f7, #ec489a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.25rem;
+        box-shadow: 0 0 10px rgba(168,85,247,0.5);
+    }
+    .speaker-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+    }
+    .speaker-timestamp {
+        font-size: 0.75rem;
+        color: #a855f7;
+        margin-left: auto;
+    }
+    .speaker-text {
+        font-size: 1.1rem;
+        line-height: 1.4;
+        color: #e2e8f0;
+        word-break: break-word;
+    }
+    .dialogue-controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin: 2rem 0;
+    }
+    .btn-glass {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(168,85,247,0.5);
+        padding: 0.75rem 1.5rem;
+        border-radius: 2rem;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-glass:hover {
+        background: rgba(168,85,247,0.3);
+        transform: scale(1.05);
+    }
+    .dialogue-status {
+        text-align: center;
+        margin-top: 1rem;
+        color: #a855f7;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+    }
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .active .speaker-avatar {
+        animation: pulse 0.8s infinite alternate;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dialogue-mode page-wrap">
+    <h1 class="page-title">{{ locale.dialog }}</h1>
+    <div class="dialogue-container">
+        <div class="dialogue-controls">
+            <button id="startDialogue" class="btn-premium px-6 py-3 rounded-full">🎤 Начать диалог</button>
+            <button id="stopDialogue" class="btn-outline px-6 py-3 rounded-full" disabled>⏹️ Остановить</button>
+            <button id="resetDialogue" class="btn-outline px-6 py-3 rounded-full">🔄 Сбросить</button>
+        </div>
+        <div id="speakersContainer">
+            <div id="speaker1" class="speaker-card" data-speaker="1">
+                <div class="speaker-header">
+                    <div class="speaker-avatar">1</div>
+                    <div class="speaker-name">Спикер 1</div>
+                    <div class="speaker-timestamp" id="timestamp1">--:--</div>
+                </div>
+                <div class="speaker-text" id="speaker1Text"></div>
+            </div>
+            <div id="speaker2" class="speaker-card" data-speaker="2">
+                <div class="speaker-header">
+                    <div class="speaker-avatar">2</div>
+                    <div class="speaker-name">Спикер 2</div>
+                    <div class="speaker-timestamp" id="timestamp2">--:--</div>
+                </div>
+                <div class="speaker-text" id="speaker2Text"></div>
+            </div>
+        </div>
+        <div id="dialogueStatus" class="dialogue-status">Ожидание запуска</div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    (function() {
+        let recognition = null;
+        let isRecording = false;
+        let currentSpeaker = 1; // 1 или 2
+        let speaker1Text = "", speaker2Text = "";
+        let lastTimestamp = 0;
+
+        const startBtn = document.getElementById('startDialogue');
+        const stopBtn = document.getElementById('stopDialogue');
+        const resetBtn = document.getElementById('resetDialogue');
+        const statusDiv = document.getElementById('dialogueStatus');
+        const speaker1Div = document.getElementById('speaker1Text');
+        const speaker2Div = document.getElementById('speaker2Text');
+        const timestamp1 = document.getElementById('timestamp1');
+        const timestamp2 = document.getElementById('timestamp2');
+        const speakerCard1 = document.getElementById('speaker1');
+        const speakerCard2 = document.getElementById('speaker2');
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            statusDiv.innerText = "❌ Ваш браузер не поддерживает распознавание речи";
+            startBtn.disabled = true;
+            return;
+        }
+
+        function updateTimestamps() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            if (currentSpeaker === 1) timestamp1.innerText = timeStr;
+            else timestamp2.innerText = timeStr;
+        }
+
+        function highlightSpeaker(speaker) {
+            speakerCard1.classList.remove('active');
+            speakerCard2.classList.remove('active');
+            if (speaker === 1) speakerCard1.classList.add('active');
+            else speakerCard2.classList.add('active');
+        }
+
+        function addToSpeaker(speaker, text) {
+            if (speaker === 1) {
+                speaker1Text += (speaker1Text ? " " : "") + text;
+                speaker1Div.innerText = speaker1Text;
+            } else {
+                speaker2Text += (speaker2Text ? " " : "") + text;
+                speaker2Div.innerText = speaker2Text;
+            }
+            updateTimestamps();
+        }
+
+        function initRecognition() {
+            const recog = new SpeechRecognition();
+            recog.interimResults = true;
+            recog.continuous = true;
+            recog.lang = "ru-RU";
+            recog.onresult = (event) => {
+                let final = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript + " ";
+                    }
+                }
+                if (final.trim()) {
+                    addToSpeaker(currentSpeaker, final.trim());
+                    // Автоматическое переключение спикера после паузы (симулируем через таймер)
+                    clearTimeout(window.speakerTimer);
+                    window.speakerTimer = setTimeout(() => {
+                        currentSpeaker = currentSpeaker === 1 ? 2 : 1;
+                        highlightSpeaker(currentSpeaker);
+                        statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
+                    }, 1500); // 1.5 секунды тишины
+                }
+            };
+            recog.onerror = (e) => {
+                if (e.error === 'not-allowed') statusDiv.innerText = "❌ Нет доступа к микрофону";
+                else statusDiv.innerText = "❌ Ошибка: " + e.error;
+                stopRecording();
+            };
+            recog.onend = () => { if (isRecording) stopRecording(); };
+            return recog;
+        }
+
+        function startRecording() {
+            if (isRecording) return;
+            statusDiv.innerText = "🎤 Запрос доступа...";
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => {
+                    recognition = initRecognition();
+                    recognition.start();
+                    isRecording = true;
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
+                    highlightSpeaker(currentSpeaker);
+                })
+                .catch(() => statusDiv.innerText = "❌ Микрофон недоступен");
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            recognition.stop();
+            isRecording = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusDiv.innerText = "⏸️ Запись остановлена";
+            clearTimeout(window.speakerTimer);
+        }
+
+        function resetDialogue() {
+            speaker1Text = "";
+            speaker2Text = "";
+            speaker1Div.innerText = "";
+            speaker2Div.innerText = "";
+            timestamp1.innerText = "--:--";
+            timestamp2.innerText = "--:--";
+            currentSpeaker = 1;
+            highlightSpeaker(1);
+            if (!isRecording) statusDiv.innerText = "Диалог сброшен";
+            else statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
+        }
+
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        resetBtn.addEventListener('click', resetDialogue);
+    })();
+</script>
+{% endblock %}

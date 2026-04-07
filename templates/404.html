@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <h1 class="text-7xl md:text-9xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">404</h1>
+    <p class="text-xl md:text-2xl text-gray-300 mt-4">Страница не найдена</p>
+    <p class="text-gray-400 mt-2">Возможно, вы перешли по неверной ссылке.</p>
+    <a href="{{ url_for('main.index') }}" class="btn-premium px-6 py-3 rounded-full mt-8 inline-block">На главную</a>
+</div>
+{% endblock %}

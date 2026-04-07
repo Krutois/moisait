@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="description" content="VoiceFlow – сервис распознавания речи в текст. Помощь людям с нарушениями слуха.">
+    <title>VoiceFlow — Speech to Text</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 10% 20%, #0a0a1a, #010105);
+            color: #f0f0f0;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(20, 20, 40, 0.55);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 1.5rem;
+        }
+        .glass-card {
+            background: rgba(20, 20, 40, 0.45);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 1.25rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .glass-card:hover {
+            border-color: #a855f7;
+            transform: translateY(-2px);
+        }
+        .btn-premium {
+            background: linear-gradient(135deg, #a855f7, #ec489a);
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(168,85,247,0.3);
+        }
+        .btn-premium:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(168,85,247,0.5);
+        }
+        .btn-outline {
+            border: 1px solid rgba(168,85,247,0.5);
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .btn-outline:hover {
+            background: rgba(168,85,247,0.15);
+            border-color: #a855f7;
+        }
+        .mic-active {
+            animation: glowPulse 1.5s infinite;
+        }
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 0 0 rgba(168,85,247,0.5); }
+            70% { box-shadow: 0 0 0 12px rgba(168,85,247,0); }
+            100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+        }
+        @media (max-width: 768px) {
+            .glass, .glass-card { border-radius: 1rem; }
+            .btn-premium, .btn-outline { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="p-4 md:p-6">
+
+    <nav class="glass fixed top-0 left-0 right-0 z-50 mx-4 md:mx-6 mt-4 px-5 py-3 rounded-2xl flex justify-between items-center">
+        <a href="{{ url_for('main.index') }}" class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">VoiceFlow</a>
+        <div class="hidden md:flex items-center gap-6">
+            <div class="flex gap-2 bg-black/30 p-1 rounded-full">
+                <button id="modeDemoBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium transition bg-purple-600 text-white">Demo</button>
+                <button id="modeSubtitlesBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium hover:bg-white/10">Subtitles</button>
+                <button id="modeDialogueBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium hover:bg-white/10">Dialogue</button>
+            </div>
+            <div class="relative">
+                <button id="profileBtn" class="flex items-center gap-2 glass px-3 py-1.5 rounded-full text-sm">
+                    <span id="userNameDisplay">Guest</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <div id="profileDropdown" class="absolute right-0 mt-2 w-44 glass rounded-xl p-2 hidden flex-col gap-1 z-50">
+                    <button id="historyBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">History</button>
+                    <button id="loginRegisterBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">Login / Register</button>
+                    <button id="logoutBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-red-400 hidden text-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden flex gap-2">
+            <button id="menuToggle" class="glass px-3 py-1.5 rounded-full text-sm">Menu</button>
+        </div>
+    </nav>
+
+    <div id="mobileMenu" class="hidden md:hidden fixed top-20 left-4 right-4 glass rounded-2xl p-4 z-50 flex-col gap-2 backdrop-blur-xl">
+        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="demo">Demo</button>
+        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="subtitles">Subtitles</button>
+        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="dialogue">Dialogue</button>
+        <hr class="border-white/20 my-1">
+        <button id="mobileHistoryBtn" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10">History</button>
+        <button id="mobileLoginBtn" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10">Login / Register</button>
+        <button id="mobileLogoutBtn" class="w-full text-left px-3 py-2 rounded-lg text-red-400 hidden">Logout</button>
+    </div>
+
+    <main class="pt-28 pb-12 max-w-5xl mx-auto px-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="glass p-3 rounded-xl text-center text-sm" role="alert">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-center py-6 text-gray-500 border-t border-white/10 text-sm">
+        <p>© 2026 VoiceFlow — AI speech recognition</p>
+    </footer>
+
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-[1200]"></div>
+
+    <script>
+        document.querySelectorAll('.mode-btn, .mobile-mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mode = e.target.dataset.mode || e.target.innerText.toLowerCase();
+                if (mode === 'demo') window.location.href = "{{ url_for('main.demo') }}";
+                else if (mode === 'subtitles') window.location.href = "{{ url_for('main.subtitles') }}";
+                else if (mode === 'dialogue') window.location.href = "{{ url_for('main.dialog') }}";
+            });
+        });
+        const profileBtn = document.getElementById('profileBtn');
+        const dropdown = document.getElementById('profileDropdown');
+        profileBtn?.addEventListener('click', () => dropdown.classList.toggle('hidden'));
+        document.addEventListener('click', (e) => {
+            if (!profileBtn?.contains(e.target) && !dropdown?.contains(e.target)) dropdown?.classList.add('hidden');
+        });
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        menuToggle?.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `glass px-4 py-2 rounded-full text-sm fixed bottom-6 right-6 z-[1200] toast-${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        window.showToast = showToast;
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

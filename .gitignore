@@ -1,6 +1,46 @@
+# Secrets
 .env
-*.pyc
+*.env
+*.key
+*.pem
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
 __pycache__/
-instance/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Database
 *.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
 *.log
+voice_assistant.log
+
+# PWA cache
+sw.js
+manifest.json
+
+# OS
+.DS_Store
+Thumbs.db

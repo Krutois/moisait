@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+    .subtitles-mode {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .subtitles-text {
+        font-size: clamp(2rem, 8vw, 5rem);
+        font-weight: 600;
+        line-height: 1.3;
+        color: #ffffff;
+        background: transparent;
+        text-align: center;
+        padding: 2rem;
+        word-break: break-word;
+        max-width: 90%;
+        margin: 0 auto;
+    }
+    .subtitles-controls {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        padding: 0.75rem 1.5rem;
+        border-radius: 3rem;
+        z-index: 1010;
+    }
+    .subtitles-controls button, .subtitles-controls select {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 2rem;
+        padding: 0.5rem 1rem;
+        color: white;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .subtitles-controls button:hover, .subtitles-controls select:hover {
+        background: #a855f7;
+        border-color: #a855f7;
+    }
+    .subtitles-status {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(0,0,0,0.5);
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        z-index: 1010;
+    }
+    @media (max-width: 640px) {
+        .subtitles-controls { gap: 0.5rem; padding: 0.5rem 1rem; }
+        .subtitles-controls button, .subtitles-controls select { padding: 0.3rem 0.7rem; font-size: 0.7rem; }
+        .subtitles-text { font-size: clamp(1.5rem, 6vw, 2.5rem); }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="subtitles-mode" id="subtitlesMode">
+    <div id="subtitlesText" class="subtitles-text">
+        🎤 Нажмите «Начать» и говорите
+    </div>
+    <div class="subtitles-controls">
+        <select id="subLangSelect">
+            <option value="ru-RU">Русский</option>
+            <option value="kk-KZ">Қазақша</option>
+            <option value="en-US">English</option>
+        </select>
+        <button id="startSubtitlesBtn">▶ Начать</button>
+        <button id="stopSubtitlesBtn" disabled>⏹ Стоп</button>
+        <button id="clearSubtitlesBtn">🗑 Очистить</button>
+        <button id="fullscreenBtn">⛶ На весь экран</button>
+        <button id="exitSubtitlesBtn">✕ Выйти</button>
+    </div>
+    <div id="subtitlesStatus" class="subtitles-status">Готов</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/subtitles.js') }}"></script>
+{% endblock %}

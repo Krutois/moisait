@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-wrap flex justify-center items-center min-h-[80vh]">
+    <div class="panel w-full max-w-lg p-8 md:p-10">
+        <h2 class="text-4xl font-extrabold text-center mb-8 auth-top-title">{{ locale.login }}</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="mb-4">
+                {{ form.username(class_="input-premium text-base py-3", placeholder=locale.username) }}
+                {% for error in form.username.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="mb-6">
+                {{ form.password(class_="input-premium text-base py-3", placeholder=locale.password) }}
+                {% for error in form.password.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn-premium w-full py-3 rounded-xl text-base font-semibold">{{ locale.login }}</button>
+        </form>
+        <p class="mt-5 text-center text-gray-300">{{ locale.no_account }} <a href="{{ url_for('auth.register') }}" class="text-purple-300 hover:text-purple-200">{{ locale.register }}</a></p>
+    </div>
+</div>
+{% endblock %}

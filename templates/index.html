@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+    <div class="container mx-auto px-6 text-center z-10">
+        <h1 class="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight mb-6 bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
+            Голос → текст<br>мгновенно
+        </h1>
+        <p class="text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
+            Общайтесь без барьеров. Наш AI превращает речь в текст в реальном времени.<br>
+            Создано для людей с нарушениями слуха, но полезно каждому.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-5">
+            <a href="{{ url_for('main.demo') if current_user.is_authenticated else url_for('auth.login') }}" class="btn-premium px-8 py-3 rounded-full text-white font-semibold text-base sm:text-lg transition-all hover:scale-105">
+                Начать бесплатно
+            </a>
+            <a href="#features" class="glass px-8 py-3 rounded-full text-white font-semibold text-base sm:text-lg transition-all hover:bg-white/10">
+                Узнать больше
+            </a>
+        </div>
+        <div class="mt-16 flex justify-center gap-3 text-sm text-gray-400">
+            <span>Без задержек</span>
+            <span>•</span>
+            <span>Конфиденциально</span>
+            <span>•</span>
+            <span>3 языка</span>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="container mx-auto px-6 py-16 reveal">
+    <h2 class="text-3xl md:text-4xl font-bold text-center mb-12">Почему VoiceFlow?</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 text-center">
+            <div class="text-5xl mb-3">⚡</div>   <!-- эмодзи только для иконки, но если хотите убрать и их, замените на текст "Мгновенно" -->
+            <h3 class="text-xl font-semibold mb-2">Real‑time</h3>
+            <p class="text-gray-400 text-sm">Текст появляется по мере речи, без пауз</p>
+        </div>
+        <div class="glass-card p-6 text-center">
+            <div class="text-5xl mb-3">🌍</div>
+            <h3 class="text-xl font-semibold mb-2">3 языка</h3>
+            <p class="text-gray-400 text-sm">Русский, казахский, английский</p>
+        </div>
+        <div class="glass-card p-6 text-center">
+            <div class="text-5xl mb-3">🔒</div>
+            <h3 class="text-xl font-semibold mb-2">Приватность</h3>
+            <p class="text-gray-400 text-sm">Ваши данные не покидают устройство</p>
+        </div>
+    </div>
+</section>
+
+<script>
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('active');
+        });
+    }, { threshold: 0.1 });
+    reveals.forEach(el => observer.observe(el));
+</script>
+{% endblock %}

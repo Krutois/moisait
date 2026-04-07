@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-wrap max-w-4xl">
+    <h1 class="page-title">{{ locale.contact }}</h1>
+    <div class="panel space-y-8">
+        <div>
+            <h2 class="text-2xl font-semibold mb-3">{{ locale.get_in_touch }}</h2>
+            <p class="text-gray-300">{{ locale.contact_desc }}</p>
+            <div class="mt-4 space-y-2">
+                <p class="flex items-center gap-3"><span class="text-purple-400">📧</span> support@voiceflow.com</p>
+                <p class="flex items-center gap-3"><span class="text-purple-400">🐦</span> @voiceflow_ai</p>
+                <p class="flex items-center gap-3"><span class="text-purple-400">💬</span> Discord: voiceflow-community</p>
+            </div>
+        </div>
+        <div>
+            <h2 class="text-2xl font-semibold mb-3">{{ locale.project_info }}</h2>
+            <p class="text-gray-300">{{ locale.project_desc }}</p>
+            <p class="text-gray-300 mt-2">{{ locale.tech_stack }}</p>
+        </div>
+        <div>
+            <h2 class="text-2xl font-semibold mb-3">{{ locale.accessibility }}</h2>
+            <p class="text-gray-300">{{ locale.accessibility_desc }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

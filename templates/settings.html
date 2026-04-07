@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-wrap">
+    <h1 class="page-title">{{ locale.settings }}</h1>
+    <div class="panel max-w-2xl mx-auto">
+        <form id="settingsForm" method="POST">
+            {{ form.hidden_tag() }}
+            <div class="mb-4">
+                {{ form.username.label(class_="block text-gray-300 mb-2") }}
+                {{ form.username(class_="input-premium") }}
+                {% for error in form.username.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="mb-4">
+                {{ form.email.label(class_="block text-gray-300 mb-2") }}
+                {{ form.email(class_="input-premium") }}
+                {% for error in form.email.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="mb-4">
+                {{ form.password.label(class_="block text-gray-300 mb-2") }}
+                {{ form.password(class_="input-premium", placeholder=locale.password_leave_blank) }}
+                {% for error in form.password.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="mb-4">
+                {{ form.confirm.label(class_="block text-gray-300 mb-2") }}
+                {{ form.confirm(class_="input-premium") }}
+                {% for error in form.confirm.errors %}
+                    <span class="text-red-400 text-sm">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="mt-8 text-center">
+    <button id="restartOnboardingBtn" class="glass px-4 py-2 rounded-full hover:bg-white/10 transition">
+        🔄 {{ locale.restart_onboarding }}
+    </button>
+</div>
+            <button type="submit" class="btn-premium text-white px-8 py-2 rounded-full">{{ locale.save_changes }}</button>
+        </form>
+        <div id="settingsMessage" class="mt-4"></div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+<script>
+    document.getElementById('restartOnboardingBtn')?.addEventListener('click', () => {
+        localStorage.removeItem('onboardingCompleted');
+        if (window.restartOnboarding) window.restartOnboarding();
+        else location.reload(); // fallback
+    });
+</script>
+{% endblock %}

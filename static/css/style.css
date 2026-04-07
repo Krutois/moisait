@@ -1,0 +1,229 @@
+/* ---------- Глобальные сбросы ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at 10% 20%, #0a0a1a, #010105);
+    color: #f0f0f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ---------- Стеклянные панели (единый стиль) ---------- */
+.glass {
+    background: rgba(20, 20, 40, 0.55);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.5rem;
+}
+
+.glass-card {
+    background: rgba(20, 20, 40, 0.45);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.25rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.glass-card:hover {
+    border-color: #a855f7;
+    transform: translateY(-2px);
+}
+
+/* ---------- Кнопки ---------- */
+.btn-premium {
+    background: linear-gradient(135deg, #a855f7, #ec489a);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.3);
+    border: none;
+    cursor: pointer;
+}
+.btn-premium:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
+}
+.btn-premium:active {
+    transform: scale(0.98);
+}
+
+.btn-outline {
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    background: transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.btn-outline:hover {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: #a855f7;
+}
+
+/* ---------- Микрофон и пульсация ---------- */
+.mic-active {
+    animation: glowPulse 1.5s infinite;
+}
+@keyframes glowPulse {
+    0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.5); }
+    70% { box-shadow: 0 0 0 12px rgba(168, 85, 247, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+}
+
+/* ---------- Поле ввода текста ---------- */
+#transcriptionText, #resultText {
+    overflow-y: auto;
+    max-height: 300px;
+    resize: vertical;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 1rem;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 1rem;
+    line-height: 1.5;
+    transition: all 0.2s;
+}
+#transcriptionText:focus, #resultText:focus {
+    border-color: #a855f7;
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+    outline: none;
+}
+
+/* ---------- Уведомления (тосты) ---------- */
+.toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1100;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    padding: 0.6rem 1.2rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    border-left: 3px solid;
+    animation: fadeInUp 0.2s ease;
+}
+.toast-success { border-left-color: #00aa00; }
+.toast-error { border-left-color: #ff4444; }
+.toast-info { border-left-color: #a855f7; }
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Анимация появления блоков ---------- */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ---------- Субтитры (полноэкранный режим) ---------- */
+.subtitles-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.subtitles-text {
+    font-size: clamp(2rem, 8vw, 5rem);
+    font-weight: 600;
+    line-height: 1.3;
+    color: #ffffff;
+    text-align: center;
+    padding: 1.5rem;
+    background: transparent;
+}
+.subtitles-controls {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 3rem;
+    padding: 0.6rem 1.2rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    z-index: 1010;
+}
+.subtitles-controls button,
+.subtitles-controls select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 2rem;
+    padding: 0.4rem 0.9rem;
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.subtitles-controls button:hover,
+.subtitles-controls select:hover {
+    background: #a855f7;
+    border-color: #a855f7;
+}
+
+/* ---------- Диалоговый режим (пузырьки) ---------- */
+.bubble-left {
+    background: rgba(168, 85, 247, 0.18);
+    border-radius: 1.25rem 1.25rem 1.25rem 0.5rem;
+}
+.bubble-right {
+    background: rgba(236, 72, 153, 0.18);
+    border-radius: 1.25rem 1.25rem 0.5rem 1.25rem;
+}
+.active-speaker {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: #a855f7;
+}
+
+/* ---------- Скролл ---------- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #1a1a2e;
+}
+::-webkit-scrollbar-thumb {
+    background: #a855f7;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #c084fc;
+}
+
+/* ---------- Адаптивность ---------- */
+@media (max-width: 768px) {
+    .glass, .glass-card {
+        border-radius: 1rem;
+    }
+    .btn-premium, .btn-outline {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    .subtitles-text {
+        font-size: clamp(1.5rem, 6vw, 2.5rem);
+    }
+    .subtitles-controls {
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .subtitles-controls button,
+    .subtitles-controls select {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.7rem;
+    }
+}
