@@ -1,7 +1,6 @@
 from flask import Flask, session
 from config import DevelopmentConfig, ProductionConfig
 from extensions import db, login_manager, limiter, csrf, migrate, bcrypt
-from models import User
 from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
 import os
 
@@ -25,6 +24,8 @@ def create_app():
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Сначала войдите в аккаунт"
     login_manager.login_message_category = "warning"
+
+    from models import User, Transcription, Favorite, UserStats
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -59,19 +60,25 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
+
     with app.app_context():
-    from models import User, Transcription, Favorite, UserStats
-    db.create_all()
+        db.create_all()
+
     @app.errorhandler(404)
     def not_found(error):
-        return "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>404 — Page not found</h1>", 404
+        return (
+            "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>"
+            "404 — Page not found"
+            "</h1>"
+        ), 404
 
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
-        return "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>500 — Internal server error</h1>", 500
-
-    with app.app_context():
-        db.create_all()
+        return (
+            "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>"
+            "500 — Internal server error"
+            "</h1>"
+        ), 500
 
     return app

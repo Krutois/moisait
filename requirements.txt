@@ -1,5 +1,4 @@
-@'
-Flask==3.0.0
+﻿Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
 Flask-WTF==1.2.1
@@ -11,7 +10,3 @@ gunicorn==21.2.0
 reportlab==4.2.2
 openai>=1.40.0
 psycopg2-binary==2.9.9
-<<<<<<< HEAD
-'@ | Set-Content requirements.txt -Encoding UTF8
-=======
->>>>>>> 86858b7 (Fix Render python and postgres)
