@@ -59,7 +59,9 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
-
+    with app.app_context():
+    from models import User, Transcription, Favorite, UserStats
+    db.create_all()
     @app.errorhandler(404)
     def not_found(error):
         return "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>404 — Page not found</h1>", 404
