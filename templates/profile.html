@@ -1,138 +1,386 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="page-wrap">
-    <h1 class="page-title">{{ locale.profile }}</h1>
-    <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Profile Card -->
-        <div class="panel flex-1">
-            <div class="flex flex-col md:flex-row gap-8 items-center">
-                <div class="relative">
-                    <div class="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-4xl font-bold shadow-xl overflow-hidden">
-                        {% if user.avatar and user.avatar != 'default.png' %}
-                            <img src="{{ user.avatar }}" class="w-full h-full object-cover">
-                        {% else %}
-                            {{ user.username[0].upper() }}
-                        {% endif %}
-                    </div>
-                    <button id="changeAvatarBtn" class="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 shadow-lg hover:scale-110 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    </button>
-                    <input type="file" id="avatarInput" accept="image/*" class="hidden">
-                </div>
-                <div class="text-center md:text-left">
-                    <h3 class="text-2xl font-semibold">{{ user.username }}</h3>
-                    <p class="text-gray-400 mt-1">{{ user.email }}</p>
-                    <p class="text-sm mt-3">{{ locale.member_since }} {{ user.created_at.strftime('%d.%m.%Y') }}</p>
-                    <p class="text-sm mt-1">{{ locale.total_transcriptions }}: {{ user.transcriptions|length }}</p>
-                </div>
-            </div>
-            <div class="mt-8 flex gap-4 justify-center">
-                <a href="{{ url_for('auth.settings') }}" class="btn-premium px-6 py-2 rounded-full">{{ locale.settings }}</a>
-                <a href="{{ url_for('main.stats') }}" class="glass px-6 py-2 rounded-full hover:bg-white/10 transition">{{ locale.stats }}</a>
-            </div>
-        </div>
+{% block title %}{{ t('profile.page_title') }}{% endblock %}
 
-        <!-- Favorites -->
-        <div class="panel flex-1">
-            <h2 class="text-2xl font-bold mb-4">{{ locale.favorites }}</h2>
-            <div id="favoritesList" class="space-y-3 max-h-96 overflow-y-auto">
-                <div class="text-gray-400 text-center py-4">{{ locale.loading }}</div>
-            </div>
-        </div>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+  .profile-layout {
+    display: grid;
+    grid-template-columns: 0.86fr 1.14fr;
+    gap: 20px;
+    align-items: start;
+  }
 
+  .profile-panel {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
 
-{% endblock %}
-{% block scripts %}
-<script>
-    // Load favorites
-    async function loadFavorites() {
-        const container = document.getElementById('favoritesList');
-        try {
-            const res = await fetch('/api/favorites');
-            const favs = await res.json();
-            if (favs.length === 0) {
-                container.innerHTML = '<div class="text-gray-400 text-center py-4">{{ locale.no_favorites }}</div>';
-                return;
-            }
-            container.innerHTML = '';
-            favs.forEach(fav => {
-                const card = document.createElement('div');
-                card.className = 'glass-card p-3 hover:shadow-purple-500/20 transition';
-                card.innerHTML = `
-    <div class="flex justify-between items-start">
-        <div class="flex-1">
-            <p class="text-sm text-gray-400">${new Date(fav.created_at).toLocaleString()}</p>
-            <p class="text-white mt-1">${fav.text.substring(0, 100)}${fav.text.length > 100 ? '...' : ''}</p>
-        </div>
-        <button class="remove-fav text-red-400 hover:text-red-300 ml-2" data-id="${fav.transcription_id}">✖</button>
-    </div>
-    <div class="mt-2 flex gap-2">
-        <a href="/export/${fav.transcription_id}" class="text-xs glass px-2 py-1 rounded inline-block"> {{ locale.export_txt }}</a>
-    </div>
-`;
-                container.appendChild(card);
-            });
-            document.querySelectorAll('.remove-fav').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = btn.dataset.id;
-                    await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
-                    loadFavorites();
-                });
-            });
-            document.querySelectorAll('.export-fav').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        try {
-            const response = await fetch(`/api/export/${id}`);
-            if (!response.ok) throw new Error('Ошибка загрузки');
-            const text = await response.text();
-            const blob = new Blob([text], {type: 'text/plain'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `transcript_${id}.txt`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        } catch (err) {
-            console.error(err);
-            alert('Не удалось скачать файл');
-        }
-    });
-});
-        } catch (err) {
-            console.error(err);
-            container.innerHTML = '<div class="text-red-400 text-center py-4">{{ locale.error }}</div>';
-        }
+  .profile-card-top {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .profile-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    font-size: 30px;
+    font-weight: 800;
+    box-shadow: 0 14px 34px rgba(124,58,237,0.3);
+    flex-shrink: 0;
+  }
+
+  .profile-name {
+    margin: 0 0 6px;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .profile-email {
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .profile-badge {
+    display: inline-flex;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #dbe7ff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .profile-info-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .profile-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 15px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .profile-info-row span {
+    color: var(--muted);
+  }
+
+  .profile-info-row strong {
+    color: #eef4ff;
+    text-align: right;
+  }
+
+  .profile-note {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    line-height: 1.7;
+  }
+
+  .profile-right-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 18px;
+  }
+
+  .profile-right-top h2 {
+    margin: 12px 0 8px;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .profile-right-top p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+    max-width: 760px;
+  }
+
+  .profile-quick-stat {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    white-space: nowrap;
+  }
+
+  .profile-quick-stat strong {
+    display: block;
+    font-size: 28px;
+    margin-bottom: 4px;
+    letter-spacing: -0.04em;
+  }
+
+  .profile-quick-stat span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .profile-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .metric-card {
+    padding: 18px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .metric-card strong {
+    display: block;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+  }
+
+  .metric-card span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .profile-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .action-card {
+    padding: 20px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.2);
+  }
+
+  .action-index {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #dbe7ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .action-card h3 {
+    margin: 0 0 10px;
+    font-size: 22px;
+  }
+
+  .action-card p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .danger-row {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 1080px) {
+    .profile-layout,
+    .profile-metrics,
+    .profile-actions-grid {
+      grid-template-columns: 1fr;
     }
-function downloadTxt(id, text) {
-    const blob = new Blob([text], {type: 'text/plain'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `transcript_${id}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-}
-    // Avatar change
-    const avatarBtn = document.getElementById('changeAvatarBtn');
-    const avatarInput = document.getElementById('avatarInput');
-    avatarBtn.addEventListener('click', () => avatarInput.click());
-    avatarInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            const base64 = ev.target.result;
-            await fetch('/api/user', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ avatar: base64 })
-            });
-            location.reload();
-        };
-        reader.readAsDataURL(file);
-    });
+  }
 
-    loadFavorites();
+  @media (max-width: 760px) {
+    .profile-card-top,
+    .profile-right-top,
+    .profile-info-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .profile-info-row strong {
+      text-align: left;
+    }
+
+    .danger-row .btn,
+    .action-card .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="profile-layout">
+      <div class="profile-panel">
+        <span class="badge">{{ t('profile.badge') }}</span>
+
+        <div class="profile-card-top">
+          <div class="profile-avatar">
+            {{ current_user.username[0]|upper if current_user.username else 'U' }}
+          </div>
+
+          <div>
+            <h1 class="profile-name">{{ current_user.username }}</h1>
+            <p class="profile-email">{{ current_user.email }}</p>
+            <span class="profile-badge">{{ t('profile.name_badge') }}</span>
+          </div>
+        </div>
+
+        <div class="profile-info-list">
+          <div class="profile-info-row">
+            <span>{{ t('profile.reg_date') }}</span>
+            <strong>
+              {{ current_user.created_at.strftime('%d.%m.%Y') if current_user.created_at else '-' }}
+            </strong>
+          </div>
+
+          <div class="profile-info-row">
+            <span>{{ t('profile.primary_workflow') }}</span>
+            <strong>{{ t('profile.primary_workflow_value') }}</strong>
+          </div>
+
+          <div class="profile-info-row">
+            <span>{{ t('profile.workspace_type') }}</span>
+            <strong>{{ t('profile.workspace_type_value') }}</strong>
+          </div>
+        </div>
+
+        <div class="profile-note">
+          {{ t('profile.note') }}
+        </div>
+
+        <div class="danger-row">
+          <a href="{{ url_for('auth.settings') }}" class="btn btn-soft">{{ t('nav.settings') }}</a>
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">{{ t('nav.sign_out') }}</a>
+        </div>
+      </div>
+
+      <div class="profile-panel">
+        <div class="profile-right-top">
+          <div>
+            <span class="badge">{{ t('profile.dashboard_badge') }}</span>
+            <h2>{{ t('profile.dashboard_title') }}</h2>
+            <p>{{ t('profile.dashboard_text') }}</p>
+          </div>
+
+          <div class="profile-quick-stat">
+            <strong id="quickTotal">0</strong>
+            <span>{{ t('profile.quick_stat') }}</span>
+          </div>
+        </div>
+
+        <div class="profile-metrics">
+          <div class="metric-card">
+            <strong id="metricTotal">0</strong>
+            <span>{{ t('profile.metric_total') }}</span>
+          </div>
+
+          <div class="metric-card">
+            <strong id="metricFavorites">0</strong>
+            <span>{{ t('profile.metric_favorites') }}</span>
+          </div>
+
+          <div class="metric-card">
+            <strong id="metricWords">0</strong>
+            <span>{{ t('profile.metric_words') }}</span>
+          </div>
+        </div>
+
+        <div class="profile-actions-grid">
+          <div class="action-card">
+            <span class="action-index">01</span>
+            <h3>{{ t('profile.card_1_title') }}</h3>
+            <p>{{ t('profile.card_1_text') }}</p>
+            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('profile.card_1_btn') }}</a>
+          </div>
+
+          <div class="action-card">
+            <span class="action-index">02</span>
+            <h3>{{ t('profile.card_2_title') }}</h3>
+            <p>{{ t('profile.card_2_text') }}</p>
+            <a href="{{ url_for('main.history') }}" class="btn btn-soft">{{ t('profile.card_2_btn') }}</a>
+          </div>
+
+          <div class="action-card">
+            <span class="action-index">03</span>
+            <h3>{{ t('profile.card_3_title') }}</h3>
+            <p>{{ t('profile.card_3_text') }}</p>
+            <a href="{{ url_for('main.stats') }}" class="btn btn-soft">{{ t('profile.card_3_btn') }}</a>
+          </div>
+
+          <div class="action-card">
+            <span class="action-index">04</span>
+            <h3>{{ t('profile.card_4_title') }}</h3>
+            <p>{{ t('profile.card_4_text') }}</p>
+            <a href="{{ url_for('auth.settings') }}" class="btn btn-soft">{{ t('profile.card_4_btn') }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(async () => {
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  try {
+    const response = await fetch("/api/stats");
+    const data = await response.json();
+
+    if (!response.ok) return;
+
+    setText("quickTotal", data.total_records || 0);
+    setText("metricTotal", data.total_records || 0);
+    setText("metricFavorites", data.favorite_records || 0);
+    setText("metricWords", (data.total_words || 0).toLocaleString());
+  } catch (error) {
+    console.error(error);
+  }
+})();
 </script>
 {% endblock %}

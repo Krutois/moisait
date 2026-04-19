@@ -1,11 +1,375 @@
 {% extends "base.html" %}
+{% block title %}{{ t('about.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .about-shell {
+    display: grid;
+    gap: 20px;
+  }
+
+  .about-hero,
+  .about-panel,
+  .about-cta {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .about-hero {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(124,58,237,0.18), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(34,211,238,0.14), transparent 24%),
+      rgba(255,255,255,0.05);
+  }
+
+  .about-hero h1 {
+    margin: 14px 0 12px;
+    font-size: clamp(36px, 5vw, 62px);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+    max-width: 900px;
+  }
+
+  .about-hero p {
+    margin: 0;
+    max-width: 760px;
+    color: var(--muted);
+    line-height: 1.8;
+    font-size: 17px;
+  }
+
+  .about-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 40%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .about-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .hero-stat {
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .hero-stat strong {
+    display: block;
+    font-size: 30px;
+    margin-bottom: 6px;
+    letter-spacing: -0.04em;
+  }
+
+  .hero-stat span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .about-grid-3,
+  .about-grid-2 {
+    display: grid;
+    gap: 18px;
+  }
+
+  .about-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .about-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-card {
+    padding: 22px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .about-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.24), rgba(34,211,238,0.16));
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 24px;
+  }
+
+  .about-card h3 {
+    margin: 0 0 12px;
+    font-size: 22px;
+  }
+
+  .about-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .section-head-custom {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .section-head-custom h2 {
+    margin: 14px 0 10px;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.03;
+    letter-spacing: -0.04em;
+  }
+
+  .section-head-custom p {
+    margin: 0 auto;
+    max-width: 760px;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+
+  .focus-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .focus-item {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+  }
+
+  .focus-item strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  .focus-item span {
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  .about-cta {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+    background:
+      linear-gradient(135deg, rgba(124,58,237,0.16), rgba(34,211,238,0.10)),
+      rgba(255,255,255,0.05);
+  }
+
+  .about-cta h2 {
+    margin: 0 0 10px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.04em;
+  }
+
+  .about-cta p {
+    margin: 0;
+    max-width: 760px;
+    color: #dbe7ff;
+    line-height: 1.75;
+  }
+
+  @media (max-width: 980px) {
+    .about-grid-3,
+    .about-grid-2,
+    .about-hero-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .about-cta {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .about-hero h1 {
+      font-size: clamp(34px, 11vw, 52px);
+    }
+
+    .about-cta .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-wrap max-w-4xl">
-    <h1 class="page-title">About VoiceFlow</h1>
-    <div class="panel space-y-6">
-        <p class="text-gray-300 text-lg">VoiceFlow is an innovative solution for people with hearing impairments, converting spoken words into text in real time. We strive to make communication accessible to everyone.</p>
-        <p class="text-gray-300">Powered by the Web Speech API, our service offers support for three languages (Russian, Kazakh, English), saves your transcription history, and provides a seamless experience with premium design.</p>
-        <p class="text-gray-300">This project is developed as a graduation work, showcasing the possibilities of modern web technologies in the field of accessibility.</p>
+<section class="section">
+  <div class="container">
+    <div class="about-shell">
+
+      <div class="about-hero">
+        <span class="badge">{{ t('about.badge') }}</span>
+        <h1>
+          {{ t('about.title_1') }}
+          <span class="about-gradient">{{ t('about.title_2') }}</span>,
+          {{ t('about.title_3') }}
+        </h1>
+        <p>{{ t('about.subtitle') }}</p>
+
+        <div class="about-hero-stats">
+          <div class="hero-stat">
+            <strong>1</strong>
+            <span>{{ t('about.stat_1') }}</span>
+          </div>
+
+          <div class="hero-stat">
+            <strong>3</strong>
+            <span>{{ t('about.stat_2') }}</span>
+          </div>
+
+          <div class="hero-stat">
+            <strong>MVP</strong>
+            <span>{{ t('about.stat_3') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-panel">
+        <div class="section-head-custom">
+          <span class="badge">{{ t('about.problem_badge') }}</span>
+          <h2>{{ t('about.problem_title') }}</h2>
+          <p>{{ t('about.problem_text') }}</p>
+        </div>
+
+        <div class="about-grid-3" style="margin-top: 22px;">
+          <div class="about-card">
+            <div class="about-icon">01</div>
+            <h3>{{ t('about.problem_card_1_title') }}</h3>
+            <p>{{ t('about.problem_card_1_text') }}</p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-icon">02</div>
+            <h3>{{ t('about.problem_card_2_title') }}</h3>
+            <p>{{ t('about.problem_card_2_text') }}</p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-icon">03</div>
+            <h3>{{ t('about.problem_card_3_title') }}</h3>
+            <p>{{ t('about.problem_card_3_text') }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-panel">
+        <div class="section-head-custom">
+          <span class="badge">{{ t('about.audience_badge') }}</span>
+          <h2>{{ t('about.audience_title') }}</h2>
+          <p>{{ t('about.audience_text') }}</p>
+        </div>
+
+        <div class="about-grid-3" style="margin-top: 22px;">
+          <div class="about-card">
+            <div class="about-icon">A</div>
+            <h3>{{ t('about.audience_1_title') }}</h3>
+            <p>{{ t('about.audience_1_text') }}</p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-icon">B</div>
+            <h3>{{ t('about.audience_2_title') }}</h3>
+            <p>{{ t('about.audience_2_text') }}</p>
+          </div>
+
+          <div class="about-card">
+            <div class="about-icon">C</div>
+            <h3>{{ t('about.audience_3_title') }}</h3>
+            <p>{{ t('about.audience_3_text') }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-grid-2">
+        <div class="about-panel">
+          <span class="badge">{{ t('about.strong_badge') }}</span>
+          <h2 style="margin:14px 0 10px; font-size: clamp(28px, 4vw, 40px); line-height: 1.04; letter-spacing: -0.04em;">
+            {{ t('about.strong_title') }}
+          </h2>
+          <p>{{ t('about.strong_text') }}</p>
+
+          <div class="focus-list">
+            <div class="focus-item">
+              <strong>{{ t('about.strong_item_1_title') }}</strong>
+              <span>{{ t('about.strong_item_1_text') }}</span>
+            </div>
+
+            <div class="focus-item">
+              <strong>{{ t('about.strong_item_2_title') }}</strong>
+              <span>{{ t('about.strong_item_2_text') }}</span>
+            </div>
+
+            <div class="focus-item">
+              <strong>{{ t('about.strong_item_3_title') }}</strong>
+              <span>{{ t('about.strong_item_3_text') }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-panel">
+          <span class="badge">{{ t('about.value_badge') }}</span>
+          <h2 style="margin:14px 0 10px; font-size: clamp(28px, 4vw, 40px); line-height: 1.04; letter-spacing: -0.04em;">
+            {{ t('about.value_title') }}
+          </h2>
+          <p>{{ t('about.value_text') }}</p>
+
+          <div class="focus-list">
+            <div class="focus-item">
+              <strong>{{ t('about.value_item_1_title') }}</strong>
+              <span>{{ t('about.value_item_1_text') }}</span>
+            </div>
+
+            <div class="focus-item">
+              <strong>{{ t('about.value_item_2_title') }}</strong>
+              <span>{{ t('about.value_item_2_text') }}</span>
+            </div>
+
+            <div class="focus-item">
+              <strong>{{ t('about.value_item_3_title') }}</strong>
+              <span>{{ t('about.value_item_3_text') }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-cta">
+        <div>
+          <h2>{{ t('about.cta_title') }}</h2>
+          <p>{{ t('about.cta_text') }}</p>
+        </div>
+
+        <div>
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('about.cta_auth') }}</a>
+          {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ t('about.cta_guest') }}</a>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
-</div>
+  </div>
+</section>
 {% endblock %}

@@ -1,31 +1,748 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="page-wrap">
-    <h1 class="page-title">{{ locale.history }}</h1>
-    
-    <div class="panel mb-6 flex flex-wrap gap-4 justify-between items-center">
-        <div class="flex gap-2 flex-1">
-            <input type="text" id="searchInput" placeholder="{{ locale.search_placeholder }}" 
-                   class="input-premium rounded-full w-full md:w-64">
-            <button id="searchBtn" class="glass px-4 py-2 rounded-full hover:bg-white/10 transition">{{ locale.search }}</button>
-        </div>
-        <select id="langFilter" class="input-premium rounded-full w-full md:w-auto">
-            <option value="">{{ locale.all_languages }}</option>
-            <option value="ru">Русский</option>
-            <option value="kk">Қазақша</option>
-            <option value="en">English</option>
-        </select>
-    </div>
-    
-    <div id="historyList" class="grid gap-4 max-w-4xl mx-auto">
-        <!-- JS will inject -->
-    </div>
-    
-    <div id="pagination" class="flex justify-center gap-2 mt-8">
-        <!-- Pagination buttons -->
-    </div>
-</div>
+{% block title %}{{ t('history.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .history-layout {
+    display: grid;
+    grid-template-columns: 0.78fr 1.22fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .history-panel {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .history-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .history-head h1 {
+    margin: 12px 0 8px;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .history-head p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+    max-width: 760px;
+  }
+
+  .history-count {
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #dbe7ff;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .side-title {
+    margin: 12px 0 10px;
+    font-size: 24px;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+
+  .side-text {
+    margin: 0 0 18px;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .filter-group {
+    margin-bottom: 14px;
+  }
+
+  .filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #dbe7ff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .filter-input,
+  .filter-select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #ffffff;
+    outline: none;
+  }
+
+  .filter-input:focus,
+  .filter-select:focus {
+    border-color: rgba(124,58,237,0.55);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+  }
+
+  .filter-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .side-note {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    line-height: 1.68;
+  }
+
+  .history-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .record-card {
+    padding: 18px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .record-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 14px;
+  }
+
+  .record-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .meta-source {
+    background: rgba(124,58,237,0.14);
+    color: #ddd6fe;
+    border-color: rgba(124,58,237,0.2);
+  }
+
+  .meta-date {
+    background: rgba(255,255,255,0.04);
+    color: var(--muted);
+  }
+
+  .meta-language {
+    background: rgba(34,211,238,0.12);
+    color: #dff9ff;
+    border-color: rgba(34,211,238,0.18);
+  }
+
+  .record-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #ffffff;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .action-btn:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+  }
+
+  .action-btn.active {
+    background: rgba(245,158,11,0.14);
+    border-color: rgba(245,158,11,0.18);
+    color: #fde68a;
+  }
+
+  .action-btn.delete {
+    color: #fecaca;
+    border-color: rgba(239,68,68,0.18);
+  }
+
+  .record-text {
+    color: #eef4ff;
+    line-height: 1.78;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 14px;
+  }
+
+  .saved-summary {
+    margin-bottom: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .saved-summary strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-size: 14px;
+  }
+
+  .saved-summary p {
+    margin: 0;
+    color: #dbe7ff;
+    line-height: 1.72;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .keyword-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .keyword-row span {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(124,58,237,0.14);
+    border: 1px solid rgba(124,58,237,0.18);
+    color: #ddd6fe;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .record-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .record-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .record-stat {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-size: 13px;
+  }
+
+  .empty-state {
+    padding: 34px 28px;
+    border-radius: 24px;
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.12);
+  }
+
+  .empty-state h3 {
+    margin: 0 0 10px;
+    font-size: 28px;
+    letter-spacing: -0.03em;
+  }
+
+  .empty-state p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  @media (max-width: 1080px) {
+    .history-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .history-head,
+    .record-top,
+    .record-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .record-actions {
+      justify-content: flex-start;
+    }
+
+    .history-count {
+      width: fit-content;
+    }
+  }
+  .export-wrap {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  min-width: 150px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  display: none;
+  z-index: 20;
+}
+
+.export-menu.show {
+  display: grid;
+  gap: 6px;
+}
+
+.export-option {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.export-option:hover {
+  background: rgba(255,255,255,0.08);
+}
+</style>
 {% endblock %}
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/history.js') }}"></script>
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="history-layout">
+      <div class="history-panel">
+        <span class="badge">{{ t('history.controls_badge') }}</span>
+        <h2 class="side-title">{{ t('history.side_title') }}</h2>
+        <p class="side-text">
+          {{ t('history.side_text') }}
+        </p>
+
+        <div class="filter-group">
+          <label for="searchInput">{{ t('history.search_label') }}</label>
+          <input
+            id="searchInput"
+            class="filter-input"
+            type="text"
+            placeholder="{{ t('history.search_placeholder') }}"
+          >
+        </div>
+
+        <div class="filter-group">
+          <label for="sourceFilter">{{ t('history.mode_label') }}</label>
+          <select id="sourceFilter" class="filter-select">
+            <option value="all">{{ t('history.mode_all') }}</option>
+            <option value="demo">{{ t('history.mode_demo') }}</option>
+            <option value="dialog">{{ t('history.mode_dialog') }}</option>
+            <option value="subtitles">{{ t('history.mode_subtitles') }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="favoriteFilter">{{ t('history.favorite_label') }}</label>
+          <select id="favoriteFilter" class="filter-select">
+            <option value="all">{{ t('history.favorite_all') }}</option>
+            <option value="yes">{{ t('history.favorite_yes') }}</option>
+            <option value="no">{{ t('history.favorite_no') }}</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button type="button" class="btn btn-primary" id="applyFiltersBtn">{{ t('history.apply') }}</button>
+          <button type="button" class="btn btn-soft" id="resetFiltersBtn">{{ t('history.reset') }}</button>
+        </div>
+
+        <div class="side-note">
+          {{ t('history.note') }}
+        </div>
+      </div>
+
+      <div class="history-panel">
+        <div class="history-head">
+          <div>
+            <span class="badge">{{ t('history.saved_badge') }}</span>
+            <h1>{{ t('history.title') }}</h1>
+            <p>
+              {{ t('history.subtitle') }}
+            </p>
+          </div>
+
+          <div class="history-count">
+            {{ t('history.results') }}: <span id="historyCount">0</span>
+          </div>
+        </div>
+
+        {% if history and history|length > 0 %}
+          <div class="history-list" id="historyList">
+            {% for item in history %}
+              <article
+                class="record-card"
+                data-id="{{ item.id }}"
+                data-source="{{ item.source if item.source else 'demo' }}"
+                data-favorite="{{ 'yes' if item.is_favorite else 'no' }}"
+                data-text="{{ ((item.text or '') ~ ' ' ~ (item.summary or ''))|lower }}"
+                data-export-url="/api/history/{{ item.id }}/export"
+              >
+                <div class="record-top">
+                  <div class="record-meta">
+                    <span class="meta-pill meta-source">{{ item.source if item.source else 'demo' }}</span>
+                    <span class="meta-pill meta-date">
+                      {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '-' }}
+                    </span>
+                    <span class="meta-pill meta-language">{{ item.language if item.language else 'ru-RU' }}</span>
+                  </div>
+
+                  <div class="record-actions">
+                    <button
+                      type="button"
+                      class="action-btn favorite-btn {% if item.is_favorite %}active{% endif %}"
+                      data-id="{{ item.id }}"
+                      data-state="{% if item.is_favorite %}1{% else %}0{% endif %}"
+                      title="{{ t('history.favorite_action') }}"
+                    >★</button>
+
+                    <button
+                      type="button"
+                      class="action-btn copy-btn"
+                      data-text="{{ item.text }}"
+                      title="{{ t('history.copy_action') }}"
+                    >⧉</button>
+
+                    <div class="export-wrap">
+  <button
+    type="button"
+    class="action-btn export-toggle"
+    data-id="{{ item.id }}"
+    title="{{ t('history.export_action') }}"
+  >⤓</button>
+
+  <div class="export-menu">
+    <button
+      type="button"
+      class="export-option export-pdf-btn"
+      data-url="/api/history/{{ item.id }}/export/pdf"
+    >
+      {{ t('history.export_pdf') }}
+    </button>
+
+    <button
+      type="button"
+      class="export-option export-txt-btn"
+      data-url="/api/history/{{ item.id }}/export/txt"
+    >
+      {{ t('history.export_txt') }}
+    </button>
+  </div>
+</div>
+
+                    <button
+                      type="button"
+                      class="action-btn delete delete-btn"
+                      data-id="{{ item.id }}"
+                      title="{{ t('history.delete_action') }}"
+                    >×</button>
+                  </div>
+                </div>
+
+                <div class="record-text">{{ item.text }}</div>
+
+                {% if item.summary %}
+                  <div class="saved-summary">
+                    <strong>{{ t('history.saved_summary') }}</strong>
+                    <p>{{ item.summary }}</p>
+
+                    {% if item.keywords_json %}
+                      <div class="keyword-row">
+                        {% for keyword in item.keywords_json %}
+                          <span>{{ keyword }}</span>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+                <div class="record-footer">
+                  <div class="record-stats">
+                    <span class="record-stat">ID {{ item.id }}</span>
+                    <span class="record-stat">
+                      {{ item.word_count if item.word_count is defined else ((item.text or '').split()|length) }} {{ t('history.words') }}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <h3>{{ t('history.empty_title') }}</h3>
+            <p>
+              {{ t('history.empty_text') }}
+            </p>
+            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('history.empty_button') }}</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const TEXTS = {
+    copied: "{{ t('history.toast_copied') }}",
+    copyFailed: "{{ t('history.toast_copy_failed') }}",
+    favoriteAdded: "{{ t('history.toast_favorite_added') }}",
+    favoriteRemoved: "{{ t('history.toast_favorite_removed') }}",
+    favoriteFailed: "{{ t('history.toast_favorite_failed') }}",
+    deleted: "{{ t('history.toast_deleted') }}",
+    deleteFailed: "{{ t('history.toast_delete_failed') }}",
+    serverUnavailable: "{{ t('history.toast_server_unavailable') }}",
+    confirmDelete: "{{ t('history.confirm_delete') }}"
+  };
+
+  const searchInput = document.getElementById("searchInput");
+  const sourceFilter = document.getElementById("sourceFilter");
+  const favoriteFilter = document.getElementById("favoriteFilter");
+  const applyFiltersBtn = document.getElementById("applyFiltersBtn");
+  const resetFiltersBtn = document.getElementById("resetFiltersBtn");
+  const historyList = document.getElementById("historyList");
+  const historyCount = document.getElementById("historyCount");
+
+  function toast(message, type = "info") {
+    if (window.VoiceFlowUI?.toast) {
+      window.VoiceFlowUI.toast(message, type);
+    }
+  }
+
+  function getCards() {
+    if (!historyList) return [];
+    return Array.from(historyList.querySelectorAll(".record-card"));
+  }
+
+  function applyFilters() {
+    const query = (searchInput?.value || "").trim().toLowerCase();
+    const source = sourceFilter?.value || "all";
+    const favorite = favoriteFilter?.value || "all";
+
+    let visibleCount = 0;
+
+    getCards().forEach(card => {
+      const matchesText = !query || (card.dataset.text || "").includes(query);
+      const matchesSource = source === "all" || (card.dataset.source || "demo") === source;
+      const matchesFavorite = favorite === "all" || (card.dataset.favorite || "no") === favorite;
+
+      const visible = matchesText && matchesSource && matchesFavorite;
+      card.style.display = visible ? "" : "none";
+
+      if (visible) visibleCount++;
+    });
+
+    if (historyCount) {
+      historyCount.textContent = visibleCount;
+    }
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text || "");
+      toast(TEXTS.copied, "success");
+    } catch (error) {
+      console.error(error);
+      toast(TEXTS.copyFailed, "error");
+    }
+  }
+
+  async function toggleFavorite(button) {
+    const id = button.dataset.id;
+    const currentState = button.dataset.state === "1";
+
+    try {
+      const response = await fetch(`/api/history/${id}/favorite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          is_favorite: !currentState
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast(data.error || TEXTS.favoriteFailed, "error");
+        return;
+      }
+
+      const newState = data.is_favorite === true;
+      button.dataset.state = newState ? "1" : "0";
+      button.classList.toggle("active", newState);
+
+      const card = button.closest(".record-card");
+      if (card) {
+        card.dataset.favorite = newState ? "yes" : "no";
+      }
+
+      toast(newState ? TEXTS.favoriteAdded : TEXTS.favoriteRemoved, "success");
+      applyFilters();
+    } catch (error) {
+      console.error(error);
+      toast(TEXTS.serverUnavailable, "error");
+    }
+  }
+
+  function exportItem(button) {
+    const card = button.closest(".record-card");
+    if (!card) return;
+    const url = card.dataset.exportUrl;
+    if (url) {
+      window.location.href = url;
+    }
+  }
+
+  async function deleteItem(button) {
+    const id = button.dataset.id;
+    const confirmed = window.confirm(TEXTS.confirmDelete);
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/history/${id}`, {
+        method: "DELETE"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast(data.error || TEXTS.deleteFailed, "error");
+        return;
+      }
+
+      const card = button.closest(".record-card");
+      if (card) {
+        card.remove();
+      }
+
+      toast(TEXTS.deleted, "success");
+      applyFilters();
+    } catch (error) {
+      console.error(error);
+      toast(TEXTS.serverUnavailable, "error");
+    }
+  }
+
+  applyFiltersBtn?.addEventListener("click", applyFilters);
+
+  resetFiltersBtn?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    if (sourceFilter) sourceFilter.value = "all";
+    if (favoriteFilter) favoriteFilter.value = "all";
+    applyFilters();
+  });
+
+  searchInput?.addEventListener("input", applyFilters);
+  sourceFilter?.addEventListener("change", applyFilters);
+  favoriteFilter?.addEventListener("change", applyFilters);
+
+  document.querySelectorAll(".copy-btn").forEach(button => {
+    button.addEventListener("click", () => copyText(button.dataset.text || ""));
+  });
+
+  document.querySelectorAll(".favorite-btn").forEach(button => {
+    button.addEventListener("click", () => toggleFavorite(button));
+  });
+
+document.querySelectorAll(".export-toggle").forEach(button => {
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    document.querySelectorAll(".export-menu.show").forEach(menu => {
+      if (menu !== button.parentElement.querySelector(".export-menu")) {
+        menu.classList.remove("show");
+      }
+    });
+
+    const menu = button.parentElement.querySelector(".export-menu");
+    if (menu) {
+      menu.classList.toggle("show");
+    }
+  });
+});
+
+document.querySelectorAll(".export-option").forEach(button => {
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    const url = button.dataset.url;
+    if (url) {
+      window.location.href = url;
+    }
+
+    const menu = button.closest(".export-menu");
+    if (menu) {
+      menu.classList.remove("show");
+    }
+  });
+});
+
+document.addEventListener("click", () => {
+  document.querySelectorAll(".export-menu.show").forEach(menu => {
+    menu.classList.remove("show");
+  });
+});
+
+  document.querySelectorAll(".delete-btn").forEach(button => {
+    button.addEventListener("click", () => deleteItem(button));
+  });
+
+  applyFilters();
+})();
+</script>
 {% endblock %}

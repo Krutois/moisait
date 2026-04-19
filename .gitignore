@@ -1,10 +1,4 @@
-# Secrets
-.env
-*.env
-*.key
-*.pem
-
-# Virtual environment
+# Виртуальное окружение
 .venv/
 venv/
 env/
@@ -21,10 +15,18 @@ __pycache__/
 dist/
 build/
 
-# Database
+# Секреты и конфиги
+.env
+*.env
+
+# Базы данных
 *.db
 *.sqlite
 *.sqlite3
+
+# Миграции
+migrations/
+alembic.ini
 
 # IDE
 .vscode/
@@ -33,14 +35,14 @@ build/
 *.swo
 *~
 
-# Logs
+# Логи
 *.log
 voice_assistant.log
 
-# PWA cache
-sw.js
-manifest.json
-
-# OS
+# Файлы ОС
 .DS_Store
 Thumbs.db
+
+# PWA (если генерируются динамически)
+sw.js
+manifest.json

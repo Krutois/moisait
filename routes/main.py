@@ -1,55 +1,73 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, session, redirect, request, url_for
 from flask_login import login_required, current_user
 
-bp = Blueprint('main', __name__)
+from models import Transcription
+from translations import SUPPORTED_LANGS, DEFAULT_LANG
 
-@bp.route('/')
+bp = Blueprint("main", __name__)
+
+
+@bp.route("/")
 def index():
-    """Главная страница"""
-    return render_template('index.html')
+    return render_template("index.html")
 
-@bp.route('/about')
+
+@bp.route("/about")
 def about():
-    """Страница о сервисе"""
-    return render_template('about.html')
+    return render_template("about.html")
 
-@bp.route('/contact')
+
+@bp.route("/contact")
 def contact():
-    """Страница контактов"""
-    return render_template('contact.html')
+    return render_template("contact.html")
 
-@bp.route('/demo')
+
+@bp.route("/demo")
 @login_required
 def demo():
-    """Демо-режим распознавания речи"""
-    return render_template('demo.html')
+    return render_template("demo.html")
 
-@bp.route('/subtitles')
+
+@bp.route("/subtitles")
 @login_required
 def subtitles():
-    """Режим субтитров (полноэкранный)"""
-    return render_template('subtitles.html')
+    return render_template("subtitles.html")
 
-@bp.route('/dialog')
+
+@bp.route("/dialog")
 @login_required
 def dialog():
-    """Режим диалога (два спикера)"""
-    return render_template('dialog.html')
+    return render_template("dialog.html")
 
-@bp.route('/stats')
-@login_required
-def stats():
-    """Страница статистики пользователя"""
-    return render_template('stats.html')
 
-@bp.route('/profile')
-@login_required
-def profile():
-    """Личный кабинет пользователя"""
-    return render_template('profile.html', user=current_user)
-
-@bp.route('/history')
+@bp.route("/history")
 @login_required
 def history():
-    """История транскрипций"""
-    return render_template('history.html')
+    items = (
+        Transcription.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Transcription.created_at.desc())
+        .all()
+    )
+    return render_template("history.html", history=items)
+
+
+@bp.route("/profile")
+@login_required
+def profile():
+    return render_template("profile.html")
+
+
+@bp.route("/stats")
+@login_required
+def stats():
+    return render_template("stats.html")
+
+
+@bp.route("/set-language/<lang>")
+def set_language(lang):
+    if lang not in SUPPORTED_LANGS:
+        lang = DEFAULT_LANG
+
+    session["lang"] = lang
+    return redirect(request.referrer or url_for("main.index"))

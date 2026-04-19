@@ -1,257 +1,314 @@
 {% extends "base.html" %}
-{% block extra_head %}
-<style>
-    .dialogue-mode {
-        min-height: 100vh;
-        padding: 2rem;
-        background: transparent;
-    }
-    .dialogue-container {
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    .speaker-card {
-        background: rgba(20,20,45,0.6);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(168,85,247,0.3);
-        border-radius: 2rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        transition: all 0.3s cubic-bezier(0.2,0.9,0.4,1.1);
-    }
-    .speaker-card.active {
-        border-color: #a855f7;
-        box-shadow: 0 0 20px rgba(168,85,247,0.4);
-        transform: scale(1.01);
-        background: rgba(168,85,247,0.1);
-    }
-    .speaker-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    .speaker-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #a855f7, #ec489a);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 1.25rem;
-        box-shadow: 0 0 10px rgba(168,85,247,0.5);
-    }
-    .speaker-name {
-        font-size: 1.25rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-    }
-    .speaker-timestamp {
-        font-size: 0.75rem;
-        color: #a855f7;
-        margin-left: auto;
-    }
-    .speaker-text {
-        font-size: 1.1rem;
-        line-height: 1.4;
-        color: #e2e8f0;
-        word-break: break-word;
-    }
-    .dialogue-controls {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin: 2rem 0;
-    }
-    .btn-glass {
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(168,85,247,0.5);
-        padding: 0.75rem 1.5rem;
-        border-radius: 2rem;
-        color: white;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn-glass:hover {
-        background: rgba(168,85,247,0.3);
-        transform: scale(1.05);
-    }
-    .dialogue-status {
-        text-align: center;
-        margin-top: 1rem;
-        color: #a855f7;
-        font-size: 0.9rem;
-        letter-spacing: 1px;
-    }
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        100% { opacity: 1; }
-    }
-    .active .speaker-avatar {
-        animation: pulse 0.8s infinite alternate;
-    }
-</style>
-{% endblock %}
+{% block title %}Диалоговый режим{% endblock %}
+
 {% block content %}
-<div class="dialogue-mode page-wrap">
-    <h1 class="page-title">{{ locale.dialog }}</h1>
-    <div class="dialogue-container">
-        <div class="dialogue-controls">
-            <button id="startDialogue" class="btn-premium px-6 py-3 rounded-full">🎤 Начать диалог</button>
-            <button id="stopDialogue" class="btn-outline px-6 py-3 rounded-full" disabled>⏹️ Остановить</button>
-            <button id="resetDialogue" class="btn-outline px-6 py-3 rounded-full">🔄 Сбросить</button>
-        </div>
-        <div id="speakersContainer">
-            <div id="speaker1" class="speaker-card" data-speaker="1">
-                <div class="speaker-header">
-                    <div class="speaker-avatar">1</div>
-                    <div class="speaker-name">Спикер 1</div>
-                    <div class="speaker-timestamp" id="timestamp1">--:--</div>
-                </div>
-                <div class="speaker-text" id="speaker1Text"></div>
-            </div>
-            <div id="speaker2" class="speaker-card" data-speaker="2">
-                <div class="speaker-header">
-                    <div class="speaker-avatar">2</div>
-                    <div class="speaker-name">Спикер 2</div>
-                    <div class="speaker-timestamp" id="timestamp2">--:--</div>
-                </div>
-                <div class="speaker-text" id="speaker2Text"></div>
-            </div>
-        </div>
-        <div id="dialogueStatus" class="dialogue-status">Ожидание запуска</div>
+<section class="section">
+  <div class="container">
+
+    <div class="page-head">
+      <div>
+        <span class="badge">Conversation mode</span>
+        <h1>Диалоговый режим</h1>
+        <p>Режим для интервью, разговоров и встреч с разделением реплик по спикерам.</p>
+      </div>
     </div>
-</div>
+
+    <div class="card-grid demo-layout">
+      <div class="panel demo-main">
+        <div class="demo-toolbar">
+          <button id="dialogStartBtn" class="btn btn-primary" type="button">Начать</button>
+          <button id="dialogStopBtn" class="btn btn-soft" type="button" disabled>Стоп</button>
+          <button id="dialogSwitchBtn" class="btn btn-soft" type="button">Сменить спикера</button>
+          <button id="dialogCopyBtn" class="btn btn-soft" type="button">Копировать</button>
+          <button id="dialogClearBtn" class="btn btn-soft" type="button">Очистить</button>
+          <button id="dialogSaveBtn" class="btn btn-soft" type="button">Сохранить</button>
+        </div>
+
+        <div class="demo-toolbar second">
+          <select id="dialogLangSelect" class="input">
+            <option value="ru-RU">Русский</option>
+            <option value="kk-KZ">Қазақша</option>
+            <option value="en-US">English</option>
+          </select>
+
+          <div class="speaker-pill" id="speakerPill">Спикер A</div>
+          <div class="status-pill" id="dialogStatus">Ожидание</div>
+        </div>
+
+        <div id="dialogOutput" class="dialog-output">
+          <div class="dialog-placeholder">Начни запись — здесь появятся реплики диалога...</div>
+        </div>
+      </div>
+
+      <div class="panel side-panel">
+        <h3>Для чего нужен режим</h3>
+        <ul class="clean-list">
+          <li>Интервью и подкасты</li>
+          <li>Разговор двух людей</li>
+          <li>Разделение речи по спикерам вручную</li>
+          <li>Сохранение результата в историю</li>
+        </ul>
+
+        <div class="side-note">
+          Если говорящий меняется — нажми “Сменить спикера”, и следующая реплика пойдет уже от другого участника.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
 {% endblock %}
-{% block scripts %}
+
+{% block extra_js %}
 <script>
-    (function() {
-        let recognition = null;
-        let isRecording = false;
-        let currentSpeaker = 1; // 1 или 2
-        let speaker1Text = "", speaker2Text = "";
-        let lastTimestamp = 0;
+(() => {
+  const startBtn = document.getElementById("dialogStartBtn");
+  const stopBtn = document.getElementById("dialogStopBtn");
+  const switchBtn = document.getElementById("dialogSwitchBtn");
+  const copyBtn = document.getElementById("dialogCopyBtn");
+  const clearBtn = document.getElementById("dialogClearBtn");
+  const saveBtn = document.getElementById("dialogSaveBtn");
+  const langSelect = document.getElementById("dialogLangSelect");
+  const status = document.getElementById("dialogStatus");
+  const speakerPill = document.getElementById("speakerPill");
+  const output = document.getElementById("dialogOutput");
 
-        const startBtn = document.getElementById('startDialogue');
-        const stopBtn = document.getElementById('stopDialogue');
-        const resetBtn = document.getElementById('resetDialogue');
-        const statusDiv = document.getElementById('dialogueStatus');
-        const speaker1Div = document.getElementById('speaker1Text');
-        const speaker2Div = document.getElementById('speaker2Text');
-        const timestamp1 = document.getElementById('timestamp1');
-        const timestamp2 = document.getElementById('timestamp2');
-        const speakerCard1 = document.getElementById('speaker1');
-        const speakerCard2 = document.getElementById('speaker2');
+  let recognition = null;
+  let isRecording = false;
+  let currentSpeaker = "A";
+  let finalTranscript = "";
+  let currentInterim = "";
+  let dialogLines = [];
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            statusDiv.innerText = "❌ Ваш браузер не поддерживает распознавание речи";
-            startBtn.disabled = true;
-            return;
+  function setStatus(text) {
+    status.textContent = text;
+  }
+
+  function setSpeakerLabel() {
+    speakerPill.textContent = `Спикер ${currentSpeaker}`;
+  }
+
+  function renderDialog() {
+    output.innerHTML = "";
+
+    if (dialogLines.length === 0 && !currentInterim.trim()) {
+      output.innerHTML = '<div class="dialog-placeholder">Начни запись — здесь появятся реплики диалога...</div>';
+      return;
+    }
+
+    dialogLines.forEach(line => {
+      const item = document.createElement("div");
+      item.className = `dialog-line speaker-${line.speaker.toLowerCase()}`;
+
+      item.innerHTML = `
+        <div class="dialog-speaker">Спикер ${line.speaker}</div>
+        <div class="dialog-bubble">${escapeHtml(line.text)}</div>
+      `;
+
+      output.appendChild(item);
+    });
+
+    if (currentInterim.trim()) {
+      const live = document.createElement("div");
+      live.className = `dialog-line speaker-${currentSpeaker.toLowerCase()} live`;
+
+      live.innerHTML = `
+        <div class="dialog-speaker">Спикер ${currentSpeaker}</div>
+        <div class="dialog-bubble">${escapeHtml(currentInterim)}</div>
+      `;
+
+      output.appendChild(live);
+    }
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function buildExportText() {
+    return dialogLines
+      .map(line => `Спикер ${line.speaker}: ${line.text}`)
+      .join("\n");
+  }
+
+  function pushFinalLine() {
+    const clean = finalTranscript.trim();
+    if (!clean) return;
+
+    dialogLines.push({
+      speaker: currentSpeaker,
+      text: clean
+    });
+
+    finalTranscript = "";
+    currentInterim = "";
+    renderDialog();
+  }
+
+  function initRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setStatus("Браузер не поддерживает speech recognition");
+      startBtn.disabled = true;
+      stopBtn.disabled = true;
+      return null;
+    }
+
+    const recog = new SpeechRecognition();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.lang = langSelect.value;
+
+    recog.onstart = () => {
+      isRecording = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      setStatus("Идет запись...");
+    };
+
+    recog.onend = () => {
+      isRecording = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      if (finalTranscript.trim()) {
+        pushFinalLine();
+      }
+
+      setStatus("Ожидание");
+    };
+
+    recog.onerror = (event) => {
+      console.error(event);
+      isRecording = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      setStatus(`Ошибка: ${event.error}`);
+    };
+
+    recog.onresult = (event) => {
+      let newFinal = "";
+      let interim = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          newFinal += transcript + " ";
+        } else {
+          interim += transcript;
         }
+      }
 
-        function updateTimestamps() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', second:'2-digit' });
-            if (currentSpeaker === 1) timestamp1.innerText = timeStr;
-            else timestamp2.innerText = timeStr;
-        }
+      if (newFinal.trim()) {
+        finalTranscript += newFinal;
+      }
 
-        function highlightSpeaker(speaker) {
-            speakerCard1.classList.remove('active');
-            speakerCard2.classList.remove('active');
-            if (speaker === 1) speakerCard1.classList.add('active');
-            else speakerCard2.classList.add('active');
-        }
+      currentInterim = interim;
+      renderDialog();
+    };
 
-        function addToSpeaker(speaker, text) {
-            if (speaker === 1) {
-                speaker1Text += (speaker1Text ? " " : "") + text;
-                speaker1Div.innerText = speaker1Text;
-            } else {
-                speaker2Text += (speaker2Text ? " " : "") + text;
-                speaker2Div.innerText = speaker2Text;
-            }
-            updateTimestamps();
-        }
+    return recog;
+  }
 
-        function initRecognition() {
-            const recog = new SpeechRecognition();
-            recog.interimResults = true;
-            recog.continuous = true;
-            recog.lang = "ru-RU";
-            recog.onresult = (event) => {
-                let final = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) {
-                        final += event.results[i][0].transcript + " ";
-                    }
-                }
-                if (final.trim()) {
-                    addToSpeaker(currentSpeaker, final.trim());
-                    // Автоматическое переключение спикера после паузы (симулируем через таймер)
-                    clearTimeout(window.speakerTimer);
-                    window.speakerTimer = setTimeout(() => {
-                        currentSpeaker = currentSpeaker === 1 ? 2 : 1;
-                        highlightSpeaker(currentSpeaker);
-                        statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
-                    }, 1500); // 1.5 секунды тишины
-                }
-            };
-            recog.onerror = (e) => {
-                if (e.error === 'not-allowed') statusDiv.innerText = "❌ Нет доступа к микрофону";
-                else statusDiv.innerText = "❌ Ошибка: " + e.error;
-                stopRecording();
-            };
-            recog.onend = () => { if (isRecording) stopRecording(); };
-            return recog;
-        }
+  startBtn.addEventListener("click", () => {
+    if (!recognition) {
+      recognition = initRecognition();
+    }
+    if (!recognition) return;
 
-        function startRecording() {
-            if (isRecording) return;
-            statusDiv.innerText = "🎤 Запрос доступа...";
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(() => {
-                    recognition = initRecognition();
-                    recognition.start();
-                    isRecording = true;
-                    startBtn.disabled = true;
-                    stopBtn.disabled = false;
-                    statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
-                    highlightSpeaker(currentSpeaker);
-                })
-                .catch(() => statusDiv.innerText = "❌ Микрофон недоступен");
-        }
+    recognition.lang = langSelect.value;
+    recognition.start();
+  });
 
-        function stopRecording() {
-            if (!isRecording) return;
-            recognition.stop();
-            isRecording = false;
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            statusDiv.innerText = "⏸️ Запись остановлена";
-            clearTimeout(window.speakerTimer);
-        }
+  stopBtn.addEventListener("click", () => {
+    if (recognition && isRecording) {
+      recognition.stop();
+    }
+  });
 
-        function resetDialogue() {
-            speaker1Text = "";
-            speaker2Text = "";
-            speaker1Div.innerText = "";
-            speaker2Div.innerText = "";
-            timestamp1.innerText = "--:--";
-            timestamp2.innerText = "--:--";
-            currentSpeaker = 1;
-            highlightSpeaker(1);
-            if (!isRecording) statusDiv.innerText = "Диалог сброшен";
-            else statusDiv.innerText = `Слушаю спикера ${currentSpeaker}`;
-        }
+  switchBtn.addEventListener("click", () => {
+    if (finalTranscript.trim()) {
+      pushFinalLine();
+    }
 
-        startBtn.addEventListener('click', startRecording);
-        stopBtn.addEventListener('click', stopRecording);
-        resetBtn.addEventListener('click', resetDialogue);
-    })();
+    currentSpeaker = currentSpeaker === "A" ? "B" : "A";
+    setSpeakerLabel();
+    setStatus(`Активен: Спикер ${currentSpeaker}`);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    dialogLines = [];
+    finalTranscript = "";
+    currentInterim = "";
+    renderDialog();
+    setStatus("Очищено");
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    const text = buildExportText().trim();
+
+    if (!text) {
+      setStatus("Нет текста для копирования");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      window.VoiceFlowUI?.toast?.("Диалог скопирован", "success");
+      setStatus("Скопировано");
+    } catch (error) {
+      console.error(error);
+      setStatus("Ошибка копирования");
+    }
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    const text = buildExportText().trim();
+
+    if (!text) {
+      setStatus("Нет текста для сохранения");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/history", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: text,
+          source: "dialog",
+          language: langSelect.value
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        window.VoiceFlowUI?.toast?.("Диалог сохранен", "success");
+        setStatus("Сохранено в историю");
+      } else {
+        setStatus(data.error || "Ошибка сохранения");
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus("Сервер недоступен");
+    }
+  });
+
+  langSelect.addEventListener("change", () => {
+    setStatus(`Язык: ${langSelect.options[langSelect.selectedIndex].text}`);
+  });
+
+  setSpeakerLabel();
+  renderDialog();
+})();
 </script>
 {% endblock %}

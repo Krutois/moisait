@@ -1,26 +1,359 @@
 {% extends "base.html" %}
+{% block title %}{{ t('contact.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .contact-shell {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .contact-panel {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .contact-head h1 {
+    margin: 12px 0 10px;
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .contact-head p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.75;
+    max-width: 760px;
+  }
+
+  .contact-form {
+    display: grid;
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .form-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .form-group label {
+    color: #dbe7ff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .contact-input,
+  .contact-textarea {
+    width: 100%;
+    padding: 15px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: white;
+    outline: none;
+    transition: .2s ease;
+  }
+
+  .contact-input:focus,
+  .contact-textarea:focus {
+    border-color: rgba(124,58,237,0.55);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+  }
+
+  .contact-textarea {
+    min-height: 180px;
+    resize: vertical;
+    line-height: 1.7;
+  }
+
+  .form-helper {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .contact-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .contact-side-top h2 {
+    margin: 12px 0 10px;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .contact-side-top p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+
+  .contact-cards {
+    display: grid;
+    gap: 14px;
+    margin-top: 20px;
+  }
+
+  .contact-card {
+    padding: 18px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .contact-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.24), rgba(34,211,238,0.16));
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 22px;
+  }
+
+  .contact-card h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+  }
+
+  .contact-card p,
+  .contact-card a {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.7;
+    word-break: break-word;
+  }
+
+  .contact-card a:hover {
+    color: white;
+  }
+
+  .contact-note {
+    margin-top: 16px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(34,211,238,0.08));
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #e8f1ff;
+    line-height: 1.7;
+  }
+
+  .contact-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .mini-box {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mini-box strong {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 6px;
+    letter-spacing: -0.03em;
+  }
+
+  .mini-box span {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 980px) {
+    .contact-shell,
+    .contact-mini-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .contact-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-wrap max-w-4xl">
-    <h1 class="page-title">{{ locale.contact }}</h1>
-    <div class="panel space-y-8">
-        <div>
-            <h2 class="text-2xl font-semibold mb-3">{{ locale.get_in_touch }}</h2>
-            <p class="text-gray-300">{{ locale.contact_desc }}</p>
-            <div class="mt-4 space-y-2">
-                <p class="flex items-center gap-3"><span class="text-purple-400">📧</span> support@voiceflow.com</p>
-                <p class="flex items-center gap-3"><span class="text-purple-400">🐦</span> @voiceflow_ai</p>
-                <p class="flex items-center gap-3"><span class="text-purple-400">💬</span> Discord: voiceflow-community</p>
-            </div>
+<section class="section">
+  <div class="container">
+    <div class="contact-shell">
+      <div class="contact-panel">
+        <div class="contact-head">
+          <span class="badge">{{ t('contact.badge') }}</span>
+          <h1>{{ t('contact.title') }}</h1>
+          <p>{{ t('contact.subtitle') }}</p>
         </div>
-        <div>
-            <h2 class="text-2xl font-semibold mb-3">{{ locale.project_info }}</h2>
-            <p class="text-gray-300">{{ locale.project_desc }}</p>
-            <p class="text-gray-300 mt-2">{{ locale.tech_stack }}</p>
+
+        <form id="contactForm" class="contact-form">
+          <div class="form-group">
+            <label for="nameField">{{ t('contact.form_name') }}</label>
+            <input
+              id="nameField"
+              class="contact-input"
+              type="text"
+              placeholder="{{ t('contact.form_name_placeholder') }}"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="emailField">{{ t('contact.form_email') }}</label>
+            <input
+              id="emailField"
+              class="contact-input"
+              type="email"
+              placeholder="{{ t('contact.form_email_placeholder') }}"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="topicField">{{ t('contact.form_topic') }}</label>
+            <input
+              id="topicField"
+              class="contact-input"
+              type="text"
+              placeholder="{{ t('contact.form_topic_placeholder') }}"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="messageField">{{ t('contact.form_message') }}</label>
+            <textarea
+              id="messageField"
+              class="contact-textarea auto-resize"
+              placeholder="{{ t('contact.form_message_placeholder') }}"
+              required
+            ></textarea>
+            <span class="form-helper">
+              {{ t('contact.form_helper') }}
+            </span>
+          </div>
+
+          <div class="contact-actions">
+            <button type="submit" class="btn btn-primary">{{ t('contact.submit') }}</button>
+            <a href="{{ url_for('main.index') }}" class="btn btn-soft">{{ t('contact.back') }}</a>
+          </div>
+        </form>
+      </div>
+
+      <div class="contact-panel">
+        <div class="contact-side-top">
+          <span class="badge">{{ t('contact.support_badge') }}</span>
+          <h2>{{ t('contact.support_title') }}</h2>
+          <p>{{ t('contact.support_text') }}</p>
         </div>
-        <div>
-            <h2 class="text-2xl font-semibold mb-3">{{ locale.accessibility }}</h2>
-            <p class="text-gray-300">{{ locale.accessibility_desc }}</p>
+
+        <div class="contact-cards">
+          <div class="contact-card">
+            <div class="contact-icon">✉</div>
+            <h3>{{ t('contact.card_email') }}</h3>
+            <a href="mailto:voiceflow.app@gmail.com">voiceflow.app@gmail.com</a>
+          </div>
+
+          <div class="contact-card">
+            <div class="contact-icon">TG</div>
+            <h3>{{ t('contact.card_telegram') }}</h3>
+            <p>@voiceflow_support</p>
+          </div>
+
+          <div class="contact-card">
+            <div class="contact-icon">📍</div>
+            <h3>{{ t('contact.card_location') }}</h3>
+            <p>{{ t('contact.location_value') }}</p>
+          </div>
         </div>
+
+        <div class="contact-mini-grid">
+          <div class="mini-box">
+            <strong>24h</strong>
+            <span>{{ t('contact.box_1') }}</span>
+          </div>
+
+          <div class="mini-box">
+            <strong>MVP</strong>
+            <span>{{ t('contact.box_2') }}</span>
+          </div>
+        </div>
+
+        <div class="contact-note">
+          {{ t('contact.note') }}
+        </div>
+      </div>
     </div>
-</div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const TEXTS = {
+    fill: "{{ t('contact.toast_fill') }}",
+    email: "{{ t('contact.toast_email') }}",
+    sent: "{{ t('contact.toast_sent') }}"
+  };
+
+  const form = document.getElementById("contactForm");
+  const nameField = document.getElementById("nameField");
+  const emailField = document.getElementById("emailField");
+  const topicField = document.getElementById("topicField");
+  const messageField = document.getElementById("messageField");
+
+  function toast(message, type = "info") {
+    if (window.VoiceFlowUI?.toast) {
+      window.VoiceFlowUI.toast(message, type);
+    } else {
+      alert(message);
+    }
+  }
+
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const name = nameField.value.trim();
+    const email = emailField.value.trim();
+    const topic = topicField.value.trim();
+    const message = messageField.value.trim();
+
+    if (!name || !email || !topic || !message) {
+      toast(TEXTS.fill, "warning");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast(TEXTS.email, "error");
+      return;
+    }
+
+    toast(TEXTS.sent, "success");
+    form.reset();
+  });
+})();
+</script>
 {% endblock %}

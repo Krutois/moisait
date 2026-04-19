@@ -2,10 +2,11 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user
 from flask import redirect, url_for, flash
-from database import db
+from extensions import db
 from models import User, Transcription, Favorite, UserStats
 
 class AdminModelView(ModelView):
+    """Базовый класс для всех моделей в админ-панели с проверкой прав"""
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
 
@@ -14,6 +15,7 @@ class AdminModelView(ModelView):
         return redirect(url_for('main.index'))
 
 def init_admin(app):
+    """Инициализация админ-панели"""
     admin = Admin(app, name='VoiceFlow Admin', template_mode='bootstrap4', url='/admin')
     admin.add_view(AdminModelView(User, db.session))
     admin.add_view(AdminModelView(Transcription, db.session))

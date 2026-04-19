@@ -1,163 +1,838 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="{{ current_lang or 'kk' }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <meta name="description" content="VoiceFlow – сервис распознавания речи в текст. Помощь людям с нарушениями слуха.">
-    <title>VoiceFlow — Speech to Text</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at 10% 20%, #0a0a1a, #010105);
-            color: #f0f0f0;
-            min-height: 100vh;
-        }
-        .glass {
-            background: rgba(20, 20, 40, 0.55);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 1.5rem;
-        }
-        .glass-card {
-            background: rgba(20, 20, 40, 0.45);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 1.25rem;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .glass-card:hover {
-            border-color: #a855f7;
-            transform: translateY(-2px);
-        }
-        .btn-premium {
-            background: linear-gradient(135deg, #a855f7, #ec489a);
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 14px rgba(168,85,247,0.3);
-        }
-        .btn-premium:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 25px rgba(168,85,247,0.5);
-        }
-        .btn-outline {
-            border: 1px solid rgba(168,85,247,0.5);
-            background: transparent;
-            transition: all 0.2s;
-        }
-        .btn-outline:hover {
-            background: rgba(168,85,247,0.15);
-            border-color: #a855f7;
-        }
-        .mic-active {
-            animation: glowPulse 1.5s infinite;
-        }
-        @keyframes glowPulse {
-            0% { box-shadow: 0 0 0 0 rgba(168,85,247,0.5); }
-            70% { box-shadow: 0 0 0 12px rgba(168,85,247,0); }
-            100% { box-shadow: 0 0 0 0 rgba(168,85,247,0); }
-        }
-        @media (max-width: 768px) {
-            .glass, .glass-card { border-radius: 1rem; }
-            .btn-premium, .btn-outline { padding: 0.5rem 1rem; font-size: 0.85rem; }
-        }
-        .reveal {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.5s, transform 0.5s;
-        }
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    </style>
-    {% block extra_head %}{% endblock %}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{% block title %}VoiceFlow{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #060816;
+      --bg-2: #0b1020;
+      --panel: rgba(255, 255, 255, 0.06);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #7c3aed;
+      --primary-2: #22d3ee;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --container: 1180px;
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(124, 58, 237, 0.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body.menu-locked {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    select {
+      color: #ffffff;
+      background: #111827;
+    }
+
+    select option {
+      color: #ffffff;
+      background: #111827;
+    }
+
+    select option:checked {
+      color: #ffffff;
+      background: #2563eb;
+    }
+
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: -2;
+      opacity: 0.85;
+    }
+
+    .bg-orb.one {
+      width: 360px;
+      height: 360px;
+      top: -120px;
+      left: -140px;
+      background: rgba(124, 58, 237, 0.20);
+    }
+
+    .bg-orb.two {
+      width: 340px;
+      height: 340px;
+      top: 120px;
+      right: -120px;
+      background: rgba(34, 211, 238, 0.14);
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 85%);
+    }
+
+    .container {
+      width: min(var(--container), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .page-main {
+      min-height: 72vh;
+    }
+
+    .section {
+      padding: 56px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #dbe7ff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      backdrop-filter: blur(16px);
+      background: rgba(8, 11, 24, 0.72);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .nav {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      position: relative;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      z-index: 102;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: white;
+      box-shadow: 0 12px 28px rgba(124, 58, 237, 0.34);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      font-size: 18px;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18px;
+      flex: 1;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      font-weight: 500;
+      transition: .2s ease;
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .lang-btn {
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      transition: .2s ease;
+      line-height: 1;
+    }
+
+    .lang-btn:hover {
+      color: white;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .lang-btn.active {
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 102;
+    }
+
+    .mobile-menu-btn span {
+      width: 18px;
+      height: 2px;
+      border-radius: 99px;
+      background: #ffffff;
+      display: block;
+      transition: .2s ease;
+    }
+
+    .site-header.menu-open .mobile-menu-btn span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .site-header.menu-open .mobile-menu-btn span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .site-header.menu-open .mobile-menu-btn span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .22s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: white;
+      box-shadow: 0 14px 26px rgba(124, 58, 237, 0.28);
+    }
+
+    .btn-soft {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.08);
+      color: white;
+    }
+
+    .btn-soft:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.18);
+      color: #fecaca;
+    }
+
+    .full {
+      width: 100%;
+    }
+
+    .flash-wrap {
+      padding-top: 16px;
+    }
+
+    .flash {
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: 1px solid transparent;
+      font-weight: 500;
+      transition: all .25s ease;
+    }
+
+    .flash-success {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.18);
+      color: #bbf7d0;
+    }
+
+    .flash-danger,
+    .flash-error {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.18);
+      color: #fecaca;
+    }
+
+    .flash-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.18);
+      color: #fde68a;
+    }
+
+    .flash-info {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.18);
+      color: #bfdbfe;
+    }
+
+    .site-footer {
+      margin-top: 50px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      background: rgba(5, 8, 18, 0.7);
+      backdrop-filter: blur(14px);
+    }
+
+    .footer-grid {
+      padding: 34px 0 22px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr 0.85fr;
+      gap: 22px;
+    }
+
+    .footer-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+
+    .footer-text {
+      max-width: 360px;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.72;
+    }
+
+    .footer-col h4 {
+      margin: 0 0 12px;
+      color: white;
+      font-size: 15px;
+    }
+
+    .footer-col a {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 10px;
+      transition: .2s ease;
+    }
+
+    .footer-col a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      padding: 18px 0 28px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toast-container {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 9999;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toast {
+      min-width: 220px;
+      max-width: 320px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+      backdrop-filter: blur(16px);
+      background: rgba(15, 23, 42, 0.92);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all .25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-success {
+      border-color: rgba(34, 197, 94, 0.2);
+      color: #bbf7d0;
+    }
+
+    .toast-error {
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #fecaca;
+    }
+
+    .toast-warning {
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #fde68a;
+    }
+
+    .toast-info {
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #bfdbfe;
+    }
+
+    @media (max-width: 1100px) {
+      .nav {
+        gap: 14px;
+      }
+
+      .nav-links {
+        gap: 14px;
+      }
+
+      .nav-actions {
+        gap: 8px;
+      }
+
+      .btn {
+        padding: 11px 14px;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .site-header {
+        background: rgba(8, 11, 24, 0.94);
+      }
+
+      .nav {
+        min-height: 68px;
+        padding: 10px 0;
+        flex-wrap: nowrap;
+      }
+
+      .brand {
+        flex: 1;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+      }
+
+      .brand-text {
+        font-size: 17px;
+      }
+
+      .mobile-menu-btn {
+        display: inline-flex;
+      }
+
+      .nav-menu {
+        display: none;
+      }
+
+      .site-header.menu-open .nav-menu {
+        display: grid;
+        position: absolute;
+        top: 68px;
+        left: 0;
+        right: 0;
+        width: min(420px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 14px;
+        border-radius: 24px;
+        background: #0b1020;
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 50px rgba(0,0,0,0.42);
+        z-index: 101;
+        gap: 12px;
+      }
+
+      .site-header.menu-open::after {
+        content: "";
+        position: fixed;
+        inset: 68px 0 0;
+        background: rgba(0, 0, 0, 0.36);
+        z-index: 99;
+      }
+
+      .nav-links {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .nav-links a {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.035);
+        color: #dbe7ff;
+      }
+
+      .nav-links a:hover {
+        background: rgba(255,255,255,0.07);
+      }
+
+      .nav-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .lang-switch {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .lang-btn {
+        flex: 1;
+        text-align: center;
+        padding: 11px 10px;
+      }
+
+      .nav-actions .btn {
+        width: 100%;
+        min-height: 46px;
+      }
+
+      .page-main {
+        min-height: auto;
+      }
+
+      .section {
+        padding: 28px 0;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .container {
+        width: min(var(--container), calc(100% - 24px));
+      }
+
+      .site-header.menu-open .nav-menu {
+        width: calc(100vw - 24px);
+      }
+
+      .toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+      }
+
+      .toast {
+        max-width: none;
+        width: 100%;
+      }
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
-<body class="p-4 md:p-6">
+<body>
+  <div class="bg-orb one"></div>
+  <div class="bg-orb two"></div>
+  <div class="bg-grid"></div>
 
-    <nav class="glass fixed top-0 left-0 right-0 z-50 mx-4 md:mx-6 mt-4 px-5 py-3 rounded-2xl flex justify-between items-center">
-        <a href="{{ url_for('main.index') }}" class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">VoiceFlow</a>
-        <div class="hidden md:flex items-center gap-6">
-            <div class="flex gap-2 bg-black/30 p-1 rounded-full">
-                <button id="modeDemoBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium transition bg-purple-600 text-white">Demo</button>
-                <button id="modeSubtitlesBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium hover:bg-white/10">Subtitles</button>
-                <button id="modeDialogueBtn" class="mode-btn px-5 py-1.5 rounded-full text-sm font-medium hover:bg-white/10">Dialogue</button>
-            </div>
-            <div class="relative">
-                <button id="profileBtn" class="flex items-center gap-2 glass px-3 py-1.5 rounded-full text-sm">
-                    <span id="userNameDisplay">Guest</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </button>
-                <div id="profileDropdown" class="absolute right-0 mt-2 w-44 glass rounded-xl p-2 hidden flex-col gap-1 z-50">
-                    <button id="historyBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">History</button>
-                    <button id="loginRegisterBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">Login / Register</button>
-                    <button id="logoutBtn" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-red-400 hidden text-sm">Logout</button>
-                </div>
-            </div>
-        </div>
-        <div class="md:hidden flex gap-2">
-            <button id="menuToggle" class="glass px-3 py-1.5 rounded-full text-sm">Menu</button>
-        </div>
-    </nav>
+  <header class="site-header">
+    <div class="container nav">
+      <a href="{{ url_for('main.index') }}" class="brand">
+        <span class="brand-mark">V</span>
+        <span class="brand-text">VoiceFlow</span>
+      </a>
 
-    <div id="mobileMenu" class="hidden md:hidden fixed top-20 left-4 right-4 glass rounded-2xl p-4 z-50 flex-col gap-2 backdrop-blur-xl">
-        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="demo">Demo</button>
-        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="subtitles">Subtitles</button>
-        <button class="mobile-mode-btn w-full text-left px-3 py-2 rounded-lg hover:bg-white/10" data-mode="dialogue">Dialogue</button>
-        <hr class="border-white/20 my-1">
-        <button id="mobileHistoryBtn" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10">History</button>
-        <button id="mobileLoginBtn" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10">Login / Register</button>
-        <button id="mobileLogoutBtn" class="w-full text-left px-3 py-2 rounded-lg text-red-400 hidden">Logout</button>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-menu" id="navMenu">
+        <nav class="nav-links">
+          <a href="{{ url_for('main.index') }}">{{ t('nav.home') }}</a>
+          <a href="{{ url_for('main.about') }}">{{ t('nav.about') }}</a>
+          <a href="{{ url_for('main.contact') }}">{{ t('nav.contact') }}</a>
+
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.demo') }}">{{ t('nav.workspace') }}</a>
+            <a href="{{ url_for('main.history') }}">{{ t('nav.history') }}</a>
+            <a href="{{ url_for('main.stats') }}">{{ t('nav.analytics') }}</a>
+            <a href="{{ url_for('main.profile') }}">{{ t('nav.profile') }}</a>
+          {% endif %}
+        </nav>
+
+        <div class="nav-actions">
+          <div class="lang-switch">
+            <a href="{{ url_for('main.set_language', lang='kk') }}" class="lang-btn {% if current_lang == 'kk' %}active{% endif %}">ҚАЗ</a>
+            <a href="{{ url_for('main.set_language', lang='ru') }}" class="lang-btn {% if current_lang == 'ru' %}active{% endif %}">РУС</a>
+            <a href="{{ url_for('main.set_language', lang='en') }}" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">ENG</a>
+          </div>
+
+          {% if current_user.is_authenticated %}
+            <a class="btn btn-soft" href="{{ url_for('main.demo') }}">{{ t('nav.open_workspace') }}</a>
+            <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">{{ t('nav.sign_out') }}</a>
+          {% else %}
+            <a class="btn btn-soft" href="{{ url_for('auth.login') }}">{{ t('nav.sign_in') }}</a>
+            <a class="btn btn-primary" href="{{ url_for('auth.register') }}">{{ t('nav.create_account') }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="page-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="footer-brand">
+          <span class="brand-mark">V</span>
+          <span class="brand-text">VoiceFlow</span>
+        </div>
+        <p class="footer-text">{{ t('footer.text') }}</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>{{ t('footer.navigation') }}</h4>
+        <a href="{{ url_for('main.index') }}">{{ t('nav.home') }}</a>
+        <a href="{{ url_for('main.about') }}">{{ t('nav.about') }}</a>
+        <a href="{{ url_for('main.contact') }}">{{ t('nav.contact') }}</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>{{ t('footer.workspace') }}</h4>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('main.demo') }}">{{ t('nav.workspace') }}</a>
+          <a href="{{ url_for('main.history') }}">{{ t('nav.history') }}</a>
+          <a href="{{ url_for('main.stats') }}">{{ t('nav.analytics') }}</a>
+          <a href="{{ url_for('auth.settings') }}">{{ t('nav.settings') }}</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}">{{ t('nav.sign_in') }}</a>
+          <a href="{{ url_for('auth.register') }}">{{ t('nav.create_account') }}</a>
+        {% endif %}
+      </div>
     </div>
 
-    <main class="pt-28 pb-12 max-w-5xl mx-auto px-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="glass p-3 rounded-xl text-center text-sm" role="alert">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
+    <div class="container footer-bottom">
+      {{ t('footer.copy') }}
+    </div>
+  </footer>
 
-    <footer class="text-center py-6 text-gray-500 border-t border-white/10 text-sm">
-        <p>© 2026 VoiceFlow — AI speech recognition</p>
-    </footer>
-
-    <div id="toastContainer" class="fixed bottom-6 right-6 z-[1200]"></div>
-
-    <script>
-        document.querySelectorAll('.mode-btn, .mobile-mode-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const mode = e.target.dataset.mode || e.target.innerText.toLowerCase();
-                if (mode === 'demo') window.location.href = "{{ url_for('main.demo') }}";
-                else if (mode === 'subtitles') window.location.href = "{{ url_for('main.subtitles') }}";
-                else if (mode === 'dialogue') window.location.href = "{{ url_for('main.dialog') }}";
-            });
-        });
-        const profileBtn = document.getElementById('profileBtn');
-        const dropdown = document.getElementById('profileDropdown');
-        profileBtn?.addEventListener('click', () => dropdown.classList.toggle('hidden'));
-        document.addEventListener('click', (e) => {
-            if (!profileBtn?.contains(e.target) && !dropdown?.contains(e.target)) dropdown?.classList.add('hidden');
-        });
-        const menuToggle = document.getElementById('menuToggle');
-        const mobileMenu = document.getElementById('mobileMenu');
-        menuToggle?.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        function showToast(msg, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `glass px-4 py-2 rounded-full text-sm fixed bottom-6 right-6 z-[1200] toast-${type}`;
-            toast.innerText = msg;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+  <script>
+    (() => {
+      function ready(fn) {
+        if (document.readyState !== "loading") {
+          fn();
+        } else {
+          document.addEventListener("DOMContentLoaded", fn);
         }
-        window.showToast = showToast;
-    </script>
-    {% block scripts %}{% endblock %}
+      }
+
+      function createToastContainer() {
+        let container = document.querySelector(".toast-container");
+        if (!container) {
+          container = document.createElement("div");
+          container.className = "toast-container";
+          document.body.appendChild(container);
+        }
+        return container;
+      }
+
+      function showToast(message, type = "info", duration = 2600) {
+        const container = createToastContainer();
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.add("show");
+        });
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 260);
+        }, duration);
+      }
+
+      function autoHideFlashes() {
+        const flashes = document.querySelectorAll(".flash");
+        flashes.forEach((flash, index) => {
+          setTimeout(() => {
+            flash.style.opacity = "0";
+            flash.style.transform = "translateY(-6px)";
+            setTimeout(() => flash.remove(), 250);
+          }, 3200 + index * 250);
+        });
+      }
+
+      function setupConfirmActions() {
+        const forms = document.querySelectorAll("[data-confirm]");
+        forms.forEach((form) => {
+          form.addEventListener("submit", (event) => {
+            const message = form.dataset.confirm || "Are you sure?";
+            if (!window.confirm(message)) {
+              event.preventDefault();
+            }
+          });
+        });
+      }
+
+      function setupMobileMenu() {
+        const header = document.querySelector(".site-header");
+        const button = document.getElementById("mobileMenuBtn");
+
+        if (!header || !button) return;
+
+        function closeMenu() {
+          header.classList.remove("menu-open");
+          document.body.classList.remove("menu-locked");
+        }
+
+        function toggleMenu() {
+          header.classList.toggle("menu-open");
+          document.body.classList.toggle("menu-locked", header.classList.contains("menu-open"));
+        }
+
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleMenu();
+        });
+
+        document.querySelectorAll(".nav-links a, .nav-actions a").forEach((link) => {
+          link.addEventListener("click", closeMenu);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            closeMenu();
+          }
+        });
+
+        window.addEventListener("resize", () => {
+          if (window.innerWidth > 860) {
+            closeMenu();
+          }
+        });
+      }
+
+      window.VoiceFlowUI = {
+        toast: showToast
+      };
+
+      ready(() => {
+        autoHideFlashes();
+        setupConfirmActions();
+        setupMobileMenu();
+      });
+    })();
+  </script>
+
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

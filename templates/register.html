@@ -1,37 +1,372 @@
 {% extends "base.html" %}
+{% block title %}{{ t('register.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-layout {
+    min-height: calc(100vh - 180px);
+    display: grid;
+    place-items: center;
+  }
+
+  .auth-shell {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 0.98fr 1.02fr;
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .auth-panel {
+    padding: 28px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .auth-form-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .auth-top {
+    margin-bottom: 20px;
+  }
+
+  .auth-top h1 {
+    margin: 12px 0 8px;
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .auth-top p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .auth-form {
+    display: grid;
+    gap: 14px;
+  }
+
+  .form-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .form-group label {
+    color: #dbe7ff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .auth-input {
+    width: 100%;
+    padding: 15px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: white;
+    outline: none;
+    transition: .2s ease;
+  }
+
+  .auth-input:focus {
+    border-color: rgba(124,58,237,0.55);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+  }
+
+  .auth-helper {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .auth-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .auth-bottom {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .auth-bottom a {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  .auth-side {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(124,58,237,0.16), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(34,211,238,0.12), transparent 24%),
+      rgba(255,255,255,0.05);
+  }
+
+  .auth-side h2 {
+    margin: 14px 0 12px;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: .98;
+    letter-spacing: -0.05em;
+    max-width: 560px;
+  }
+
+  .auth-side p {
+    margin: 0;
+    max-width: 560px;
+    color: var(--muted);
+    line-height: 1.78;
+  }
+
+  .auth-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 40%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .auth-points {
+    display: grid;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .auth-point {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+  }
+
+  .auth-point strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  .auth-note {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .password-status {
+    margin-top: 4px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 980px) {
+    .auth-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .auth-layout {
+      min-height: auto;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-wrap flex justify-center items-center min-h-[80vh]">
-    <div class="panel w-full max-w-lg p-8 md:p-10">
-        <h2 class="text-4xl font-extrabold text-center mb-8 auth-top-title">{{ locale.register }}</h2>
-        <form method="POST">
-            {{ form.hidden_tag() }}
-            <div class="mb-4">
-                {{ form.username(class_="input-premium text-base py-3", placeholder=locale.username) }}
-                {% for error in form.username.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-4">
-                {{ form.email(class_="input-premium text-base py-3", placeholder=locale.email) }}
-                {% for error in form.email.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-4">
-                {{ form.password(class_="input-premium text-base py-3", placeholder=locale.password) }}
-                {% for error in form.password.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-6">
-                {{ form.confirm(class_="input-premium text-base py-3", placeholder=locale.confirm_password) }}
-                {% for error in form.confirm.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <button type="submit" class="btn-premium w-full py-3 rounded-xl text-base font-semibold">{{ locale.register }}</button>
+<section class="section auth-layout">
+  <div class="container">
+    <div class="auth-shell">
+      <div class="auth-panel auth-form-panel">
+        <div class="auth-top">
+          <span class="badge">{{ t('register.badge') }}</span>
+          <h1>{{ t('register.title') }}</h1>
+          <p>{{ t('register.subtitle') }}</p>
+        </div>
+
+        <form method="POST" class="auth-form">
+          {{ form.hidden_tag() if form }}
+
+          <div class="form-group">
+            <label>{{ t('register.username') }}</label>
+            {% if form and form.username %}
+              {{ form.username(class="auth-input", placeholder=t('register.username_placeholder')) }}
+            {% else %}
+              <input
+                type="text"
+                name="username"
+                class="auth-input"
+                placeholder="{{ t('register.username_placeholder') }}"
+                required
+              >
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.email') }}</label>
+            {% if form and form.email %}
+              {{ form.email(class="auth-input", placeholder=t('register.email_placeholder')) }}
+            {% else %}
+              <input
+                type="email"
+                name="email"
+                class="auth-input"
+                placeholder="{{ t('register.email_placeholder') }}"
+                required
+              >
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.password') }}</label>
+            {% if form and form.password %}
+              {{ form.password(class="auth-input", placeholder=t('register.password_placeholder'), id="passwordField") }}
+            {% else %}
+              <input
+                type="password"
+                name="password"
+                id="passwordField"
+                class="auth-input"
+                placeholder="{{ t('register.password_placeholder') }}"
+                required
+              >
+            {% endif %}
+            <span class="auth-helper">{{ t('register.password_helper') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.confirm') }}</label>
+            {% if form and form.confirm %}
+              {{ form.confirm(class="auth-input", placeholder=t('register.confirm_placeholder'), id="confirmField") }}
+            {% else %}
+              <input
+                type="password"
+                name="confirm"
+                id="confirmField"
+                class="auth-input"
+                placeholder="{{ t('register.confirm_placeholder') }}"
+                required
+              >
+            {% endif %}
+          </div>
+
+          <div class="password-status" id="passwordStatus">
+            {{ t('register.status_idle') }}
+          </div>
+
+          <div class="auth-actions">
+            <button type="submit" class="btn btn-primary full">{{ t('register.submit') }}</button>
+            <a href="{{ url_for('main.index') }}" class="btn btn-soft full">{{ t('register.back') }}</a>
+          </div>
         </form>
-        <p class="mt-5 text-center text-gray-300">{{ locale.already_account }} <a href="{{ url_for('auth.login') }}" class="text-purple-300 hover:text-purple-200">{{ locale.login }}</a></p>
+
+        <div class="auth-bottom">
+          {{ t('register.bottom_text') }}
+          <a href="{{ url_for('auth.login') }}">{{ t('register.bottom_link') }}</a>
+        </div>
+      </div>
+
+      <div class="auth-panel auth-side">
+        <span class="badge">{{ t('register.side_badge') }}</span>
+
+        <h2>
+          {{ t('register.side_title_1') }}
+          <span class="auth-gradient">{{ t('register.side_title_2') }}</span>
+          {{ t('register.side_title_3') }}
+        </h2>
+
+        <p>{{ t('register.side_text') }}</p>
+
+        <div class="auth-points">
+          <div class="auth-point">
+            <strong>{{ t('register.point_1_title') }}</strong>
+            {{ t('register.point_1_text') }}
+          </div>
+
+          <div class="auth-point">
+            <strong>{{ t('register.point_2_title') }}</strong>
+            {{ t('register.point_2_text') }}
+          </div>
+
+          <div class="auth-point">
+            <strong>{{ t('register.point_3_title') }}</strong>
+            {{ t('register.point_3_text') }}
+          </div>
+        </div>
+
+        <div class="auth-note">
+          {{ t('register.note') }}
+        </div>
+      </div>
     </div>
-</div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const TEXTS = {
+    idle: "{{ t('register.status_idle') }}",
+    short: "{{ t('register.status_short') }}",
+    mismatch: "{{ t('register.status_mismatch') }}",
+    ready: "{{ t('register.status_ready') }}",
+    repeat: "{{ t('register.status_repeat') }}"
+  };
+
+  const passwordField = document.getElementById("passwordField");
+  const confirmField = document.getElementById("confirmField");
+  const passwordStatus = document.getElementById("passwordStatus");
+
+  function updateStatus() {
+    if (!passwordField || !confirmField || !passwordStatus) return;
+
+    const password = passwordField.value.trim();
+    const confirm = confirmField.value.trim();
+
+    if (!password && !confirm) {
+      passwordStatus.textContent = TEXTS.idle;
+      return;
+    }
+
+    if (password.length > 0 && password.length < 8) {
+      passwordStatus.textContent = TEXTS.short;
+      return;
+    }
+
+    if (password && confirm && password !== confirm) {
+      passwordStatus.textContent = TEXTS.mismatch;
+      return;
+    }
+
+    if (password && confirm && password === confirm) {
+      passwordStatus.textContent = TEXTS.ready;
+      return;
+    }
+
+    passwordStatus.textContent = TEXTS.repeat;
+  }
+
+  passwordField?.addEventListener("input", updateStatus);
+  confirmField?.addEventListener("input", updateStatus);
+  updateStatus();
+})();
+</script>
 {% endblock %}

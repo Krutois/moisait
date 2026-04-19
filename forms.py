@@ -1,48 +1,90 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, EmailField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp
+from wtforms import StringField, PasswordField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
+
 
 class RegistrationForm(FlaskForm):
-    """Форма регистрации нового пользователя"""
-    username = StringField('Username', validators=[
-        DataRequired(message='Имя пользователя обязательно'),
-        Length(min=3, max=80, message='Имя пользователя должно быть от 3 до 80 символов')
-    ])
-    email = EmailField('Email', validators=[
-        DataRequired(message='Email обязателен'),
-        Email(message='Некорректный email адрес')
-    ])
-    password = PasswordField('Password', validators=[
-        DataRequired(message='Пароль обязателен'),
-        Length(min=8, message='Пароль должен быть не менее 8 символов'),
-        Regexp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$',
-               message='Пароль должен содержать хотя бы одну букву и одну цифру')
-    ])
-    confirm = PasswordField('Confirm Password', validators=[
-        DataRequired(message='Подтверждение пароля обязательно'),
-        EqualTo('password', message='Пароли не совпадают')
-    ])
+    username = StringField(
+        "Имя пользователя",
+        validators=[
+            DataRequired(message="Введите имя пользователя"),
+            Length(min=3, max=80, message="Имя должно быть от 3 до 80 символов"),
+        ],
+    )
+
+    email = StringField(
+        "Email",
+        validators=[
+            DataRequired(message="Введите email"),
+            Email(message="Введите корректный email"),
+            Length(max=120, message="Email слишком длинный"),
+        ],
+    )
+
+    password = PasswordField(
+        "Пароль",
+        validators=[
+            DataRequired(message="Введите пароль"),
+            Length(min=8, message="Пароль должен быть минимум 8 символов"),
+        ],
+    )
+
+    confirm = PasswordField(
+        "Подтверждение пароля",
+        validators=[
+            DataRequired(message="Подтвердите пароль"),
+            EqualTo("password", message="Пароли не совпадают"),
+        ],
+    )
+
 
 class LoginForm(FlaskForm):
-    """Форма входа в систему"""
-    username = StringField('Username', validators=[DataRequired(message='Имя пользователя обязательно')])
-    password = PasswordField('Password', validators=[DataRequired(message='Пароль обязателен')])
+    username = StringField(
+        "Имя пользователя",
+        validators=[
+            DataRequired(message="Введите имя пользователя"),
+            Length(min=3, max=80, message="Имя должно быть от 3 до 80 символов"),
+        ],
+    )
+
+    password = PasswordField(
+        "Пароль",
+        validators=[
+            DataRequired(message="Введите пароль"),
+        ],
+    )
+
 
 class SettingsForm(FlaskForm):
-    """Форма настроек профиля"""
-    username = StringField('Username', validators=[
-        DataRequired(message='Имя пользователя обязательно'),
-        Length(min=3, max=80, message='Имя пользователя должно быть от 3 до 80 символов')
-    ])
-    email = EmailField('Email', validators=[
-        DataRequired(message='Email обязателен'),
-        Email(message='Некорректный email адрес')
-    ])
-    password = PasswordField('New Password', validators=[
-        Length(min=8, message='Пароль должен быть не менее 8 символов'),
-        Regexp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$',
-               message='Пароль должен содержать хотя бы одну букву и одну цифру')
-    ])
-    confirm = PasswordField('Confirm Password', validators=[
-        EqualTo('password', message='Пароли не совпадают')
-    ])
+    username = StringField(
+        "Имя пользователя",
+        validators=[
+            DataRequired(message="Введите имя пользователя"),
+            Length(min=3, max=80, message="Имя должно быть от 3 до 80 символов"),
+        ],
+    )
+
+    email = StringField(
+        "Email",
+        validators=[
+            DataRequired(message="Введите email"),
+            Email(message="Введите корректный email"),
+            Length(max=120, message="Email слишком длинный"),
+        ],
+    )
+
+    password = PasswordField(
+        "Новый пароль",
+        validators=[
+            Optional(),
+            Length(min=8, message="Новый пароль должен быть минимум 8 символов"),
+        ],
+    )
+
+    confirm = PasswordField(
+        "Подтверждение нового пароля",
+        validators=[
+            Optional(),
+            EqualTo("password", message="Пароли не совпадают"),
+        ],
+    )

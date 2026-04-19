@@ -1,28 +1,33 @@
 import os
 from dotenv import load_dotenv
 
-# Загружаем .env только в разработке (на сервере переменные окружения задаются отдельно)
-if os.path.exists('.env'):
-    load_dotenv()
+load_dotenv()
+
+
+def normalize_database_url(url):
+    if not url:
+        return "sqlite:///voice.db"
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
 
 class Config:
-    """Базовый класс конфигурации"""
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    if not SECRET_KEY:
-        raise ValueError("❌ SECRET_KEY не задан в переменных окружения. Укажите его!")
-    
-    # База данных: если DATABASE_URL не задан, используем SQLite (только для разработки)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///voice_assistant.db')
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+    SQLALCHEMY_DATABASE_URI = normalize_database_url(os.getenv("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    WTF_CSRF_ENABLED = True
+
+    REMEMBER_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    WTF_CSRF_TIME_LIMIT = None
 
 class DevelopmentConfig(Config):
-    """Конфигурация для разработки"""
     DEBUG = True
+    TEMPLATES_AUTO_RELOAD = True
+    SEND_FILE_MAX_AGE_DEFAULT = 0
 
 class ProductionConfig(Config):
-    """Конфигурация для продакшена"""
     DEBUG = False
-    # Для продакшена обязательно должна быть задана DATABASE_URL
-    if not os.environ.get('DATABASE_URL'):
-        raise ValueError("❌ В production режиме DATABASE_URL обязательна!")
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True

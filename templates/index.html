@@ -1,60 +1,530 @@
 {% extends "base.html" %}
+{% block title %}{{ t('index.title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .landing {
+    position: relative;
+    overflow: hidden;
+    padding: 24px 0 72px;
+  }
+
+  .landing::before,
+  .landing::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .landing::before {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    left: -140px;
+    background: rgba(124, 58, 237, 0.18);
+  }
+
+  .landing::after {
+    width: 420px;
+    height: 420px;
+    top: 40px;
+    right: -140px;
+    background: rgba(34, 211, 238, 0.12);
+  }
+
+  .landing-inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 24px;
+    align-items: center;
+    padding: 40px 0 36px;
+  }
+
+  .hero-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #dbe7ff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+
+  .hero-title {
+    margin: 18px 0 16px;
+    max-width: 720px;
+    font-size: clamp(44px, 6vw, 82px);
+    line-height: .94;
+    letter-spacing: -0.06em;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .hero-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 42%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-text {
+    max-width: 640px;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.72;
+    color: var(--muted);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .hero-btn {
+    min-width: 190px;
+    padding: 15px 22px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .hero-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .hero-metric {
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-size: 14px;
+  }
+
+  .hero-panel {
+    padding: 22px;
+    border-radius: 30px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+      rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.24);
+    backdrop-filter: blur(18px);
+  }
+
+  .panel-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .panel-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .panel-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+  }
+
+  .panel-badge {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(124,58,237,0.14);
+    border: 1px solid rgba(124,58,237,0.2);
+    color: #ddd6fe;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .panel-editor {
+    min-height: 160px;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #f3f7ff;
+    line-height: 1.7;
+  }
+
+  .panel-summary {
+    margin-top: 14px;
+    padding: 18px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.09), rgba(124,58,237,0.08));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .panel-summary-label {
+    margin-bottom: 8px;
+    color: #dbe7ff;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+
+  .panel-summary-text {
+    color: #ecf4ff;
+    line-height: 1.7;
+  }
+
+  .panel-stats {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .panel-stat {
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .panel-stat strong {
+    display: block;
+    font-size: 26px;
+    margin-bottom: 4px;
+    letter-spacing: -0.04em;
+  }
+
+  .panel-stat span {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .section-block {
+    padding-top: 18px;
+  }
+
+  .section-head {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .section-head h2 {
+    margin: 14px 0 10px;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .section-head p {
+    max-width: 760px;
+    margin: 0 auto;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .feature-card {
+    padding: 22px;
+    border-radius: 26px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.18);
+  }
+
+  .feature-index {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #dbe7ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .feature-card h3 {
+    margin: 0 0 10px;
+    font-size: 22px;
+  }
+
+  .feature-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 18px;
+  }
+
+  .split-card {
+    padding: 24px;
+    border-radius: 28px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .split-card h3 {
+    margin: 14px 0 10px;
+    font-size: 26px;
+  }
+
+  .split-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.76;
+  }
+
+  .list-clean {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .list-clean div {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+  }
+
+  .cta-box {
+    margin-top: 18px;
+    padding: 28px;
+    border-radius: 30px;
+    background:
+      linear-gradient(135deg, rgba(124,58,237,0.16), rgba(34,211,238,0.10)),
+      rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .cta-box h2 {
+    margin: 0 0 10px;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .cta-box p {
+    margin: 0;
+    max-width: 760px;
+    color: #dbe7ff;
+    line-height: 1.75;
+  }
+
+  @media (max-width: 1100px) {
+    .hero,
+    .feature-grid,
+    .split-grid,
+    .panel-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .hero {
+      padding-top: 20px;
+    }
+
+    .hero-title {
+      font-size: clamp(38px, 12vw, 64px);
+    }
+
+    .hero-text {
+      font-size: 16px;
+    }
+
+    .hero-btn {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .cta-box {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .cta-box .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-    <div class="container mx-auto px-6 text-center z-10">
-        <h1 class="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight mb-6 bg-gradient-to-r from-white via-purple-200 to-white bg-clip-text text-transparent">
-            Голос → текст<br>мгновенно
+<section class="landing">
+  <div class="container landing-inner">
+    <div class="hero">
+      <div>
+        <span class="hero-label">{{ t('index.hero.label') }}</span>
+
+        <h1 class="hero-title">
+          <span class="hero-gradient">{{ t('index.hero.title_1') }}</span>
+          {{ t('index.hero.title_2') }}
         </h1>
-        <p class="text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Общайтесь без барьеров. Наш AI превращает речь в текст в реальном времени.<br>
-            Создано для людей с нарушениями слуха, но полезно каждому.
+
+        <p class="hero-text">
+          {{ t('index.hero.subtitle') }}
         </p>
-        <div class="flex flex-col sm:flex-row justify-center gap-5">
-            <a href="{{ url_for('main.demo') if current_user.is_authenticated else url_for('auth.login') }}" class="btn-premium px-8 py-3 rounded-full text-white font-semibold text-base sm:text-lg transition-all hover:scale-105">
-                Начать бесплатно
-            </a>
-            <a href="#features" class="glass px-8 py-3 rounded-full text-white font-semibold text-base sm:text-lg transition-all hover:bg-white/10">
-                Узнать больше
-            </a>
-        </div>
-        <div class="mt-16 flex justify-center gap-3 text-sm text-gray-400">
-            <span>Без задержек</span>
-            <span>•</span>
-            <span>Конфиденциально</span>
-            <span>•</span>
-            <span>3 языка</span>
-        </div>
-    </div>
-</section>
 
-<section id="features" class="container mx-auto px-6 py-16 reveal">
-    <h2 class="text-3xl md:text-4xl font-bold text-center mb-12">Почему VoiceFlow?</h2>
-    <div class="grid md:grid-cols-3 gap-6">
-        <div class="glass-card p-6 text-center">
-            <div class="text-5xl mb-3">⚡</div>   <!-- эмодзи только для иконки, но если хотите убрать и их, замените на текст "Мгновенно" -->
-            <h3 class="text-xl font-semibold mb-2">Real‑time</h3>
-            <p class="text-gray-400 text-sm">Текст появляется по мере речи, без пауз</p>
+        <div class="hero-actions">
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.demo') }}" class="btn btn-primary hero-btn">{{ t('index.hero.primary_auth') }}</a>
+          {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary hero-btn">{{ t('index.hero.primary_guest') }}</a>
+          {% endif %}
+          <a href="{{ url_for('main.about') }}" class="btn btn-soft hero-btn">{{ t('index.hero.secondary') }}</a>
         </div>
-        <div class="glass-card p-6 text-center">
-            <div class="text-5xl mb-3">🌍</div>
-            <h3 class="text-xl font-semibold mb-2">3 языка</h3>
-            <p class="text-gray-400 text-sm">Русский, казахский, английский</p>
-        </div>
-        <div class="glass-card p-6 text-center">
-            <div class="text-5xl mb-3">🔒</div>
-            <h3 class="text-xl font-semibold mb-2">Приватность</h3>
-            <p class="text-gray-400 text-sm">Ваши данные не покидают устройство</p>
-        </div>
-    </div>
-</section>
 
-<script>
-    const reveals = document.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) entry.target.classList.add('active');
-        });
-    }, { threshold: 0.1 });
-    reveals.forEach(el => observer.observe(el));
-</script>
+        <div class="hero-metrics">
+          <div class="hero-metric">{{ t('index.hero.metric_1') }}</div>
+          <div class="hero-metric">{{ t('index.hero.metric_2') }}</div>
+          <div class="hero-metric">{{ t('index.hero.metric_3') }}</div>
+        </div>
+      </div>
+
+      <div class="hero-panel">
+        <div class="panel-top">
+          <div class="panel-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="panel-badge">{{ t('index.preview.badge') }}</div>
+        </div>
+
+        <div class="panel-editor">
+          {{ t('index.preview.text') }}
+        </div>
+
+        <div class="panel-summary">
+          <div class="panel-summary-label">{{ t('index.preview.summary_label') }}</div>
+          <div class="panel-summary-text">
+            {{ t('index.preview.summary_text') }}
+          </div>
+        </div>
+
+        <div class="panel-stats">
+          <div class="panel-stat">
+            <strong>3</strong>
+            <span>{{ t('index.preview.stat_1') }}</span>
+          </div>
+          <div class="panel-stat">
+            <strong>1</strong>
+            <span>{{ t('index.preview.stat_2') }}</span>
+          </div>
+          <div class="panel-stat">
+            <strong>24/7</strong>
+            <span>{{ t('index.preview.stat_3') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="section-head">
+        <span class="badge">{{ t('index.section.label') }}</span>
+        <h2>{{ t('index.section.title') }}</h2>
+        <p>{{ t('index.section.subtitle') }}</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-index">01</span>
+          <h3>{{ t('index.feature_1.title') }}</h3>
+          <p>{{ t('index.feature_1.text') }}</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-index">02</span>
+          <h3>{{ t('index.feature_2.title') }}</h3>
+          <p>{{ t('index.feature_2.text') }}</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-index">03</span>
+          <h3>{{ t('index.feature_3.title') }}</h3>
+          <p>{{ t('index.feature_3.text') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="split-grid">
+        <div class="split-card">
+          <span class="badge">{{ t('index.split_1.label') }}</span>
+          <h3>{{ t('index.split_1.title') }}</h3>
+          <p>{{ t('index.split_1.text') }}</p>
+
+          <div class="list-clean">
+            <div>{{ t('index.split_1.item_1') }}</div>
+            <div>{{ t('index.split_1.item_2') }}</div>
+            <div>{{ t('index.split_1.item_3') }}</div>
+          </div>
+        </div>
+
+        <div class="split-card">
+          <span class="badge">{{ t('index.split_2.label') }}</span>
+          <h3>{{ t('index.split_2.title') }}</h3>
+          <p>{{ t('index.split_2.text') }}</p>
+
+          <div class="list-clean">
+            <div>{{ t('index.split_2.item_1') }}</div>
+            <div>{{ t('index.split_2.item_2') }}</div>
+            <div>{{ t('index.split_2.item_3') }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="cta-box">
+        <div>
+          <h2>{{ t('index.cta.title') }}</h2>
+          <p>{{ t('index.cta.text') }}</p>
+        </div>
+
+        <div>
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('index.cta.auth') }}</a>
+          {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ t('index.cta.guest') }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}

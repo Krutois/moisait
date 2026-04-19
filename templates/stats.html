@@ -1,71 +1,402 @@
 {% extends "base.html" %}
-{% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% endblock %}
-{% block content %}
-<div class="page-wrap">
-    <h1 class="page-title">{{ locale.statistics }}</h1>
-    <div class="grid md:grid-cols-3 gap-6 mb-12">
-        <div class="glass-card p-6 text-center">
-            <div class="text-4xl mb-2"></div>
-            <div class="text-2xl font-bold" id="totalSessions">0</div>
-            <div class="text-gray-400">{{ locale.sessions }}</div>
-        </div>
-        <div class="glass-card p-6 text-center">
-            <div class="text-4xl mb-2"></div>
-            <div class="text-2xl font-bold" id="totalWords">0</div>
-            <div class="text-gray-400">{{ locale.words }}</div>
-        </div>
-        <div class="glass-card p-6 text-center">
-            <div class="text-4xl mb-2"></div>
-            <div class="text-2xl font-bold" id="totalDuration">0</div>
-            <div class="text-gray-400">{{ locale.minutes }}</div>
-        </div>
-    </div>
-    <div class="panel">
-        <h2 class="text-xl font-semibold mb-4">{{ locale.daily_activity }}</h2>
-        <canvas id="activityChart" height="200"></canvas>
-    </div>
-</div>
-{% endblock %}
-{% block scripts %}
-<script>
-    async function loadStats() {
-        const res = await fetch('/api/stats');
-        const data = await res.json();
-        document.getElementById('totalSessions').innerText = data.total_sessions;
-        document.getElementById('totalWords').innerText = data.total_words;
-        const minutes = Math.floor(data.total_duration / 60);
-        document.getElementById('totalDuration').innerText = minutes;
-        // Chart
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        const daily = data.daily_stats;
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: daily.map(d => d.date),
-                datasets: [{
-                    label: '{{ locale.words }}',
-                    data: daily.map(d => d.words),
-                    borderColor: '#a855f7',
-                    backgroundColor: 'rgba(168,85,247,0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#fff' } }
-                },
-                scales: {
-                    x: { ticks: { color: '#ccc' } },
-                    y: { ticks: { color: '#ccc' } }
-                }
-            }
-        });
+{% block title %}{{ t('stats.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stats-layout {
+    display: grid;
+    gap: 20px;
+  }
+
+  .stats-panel {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .stats-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .stats-head h1 {
+    margin: 12px 0 8px;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+  }
+
+  .stats-head p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+    max-width: 760px;
+  }
+
+  .headline-metric {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    min-width: 180px;
+  }
+
+  .headline-metric strong {
+    display: block;
+    font-size: 30px;
+    margin-bottom: 4px;
+    letter-spacing: -0.04em;
+  }
+
+  .headline-metric span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .metric-card {
+    padding: 20px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .metric-index {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #dbe7ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .metric-card h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+  }
+
+  .metric-value {
+    display: block;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+  }
+
+  .metric-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.68;
+    font-size: 14px;
+  }
+
+  .analytics-bottom {
+    display: grid;
+    grid-template-columns: 1.18fr 0.82fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .chart-card,
+  .insight-card {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .chart-card h2,
+  .insight-card h2 {
+    margin: 12px 0 10px;
+    font-size: 28px;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+  }
+
+  .chart-card p,
+  .insight-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .chart-wrap {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    min-height: 360px;
+  }
+
+  .chart-wrap canvas {
+    width: 100% !important;
+    height: 320px !important;
+  }
+
+  .insight-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .insight-item {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .insight-item strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #ffffff;
+    font-size: 15px;
+  }
+
+  .insight-item span {
+    color: var(--muted);
+    line-height: 1.65;
+    font-size: 14px;
+  }
+
+  .dynamic-note {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    line-height: 1.68;
+  }
+
+  @media (max-width: 1080px) {
+    .metric-grid,
+    .analytics-bottom {
+      grid-template-columns: 1fr;
     }
-    loadStats();
+  }
+
+  @media (max-width: 760px) {
+    .stats-head {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .headline-metric {
+      min-width: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="stats-layout">
+      <div class="stats-panel">
+        <div class="stats-head">
+          <div>
+            <span class="badge">{{ t('stats.badge') }}</span>
+            <h1>{{ t('stats.title') }}</h1>
+            <p>{{ t('stats.subtitle') }}</p>
+          </div>
+
+          <div class="headline-metric">
+            <strong id="headlineMetric">0</strong>
+            <span>{{ t('stats.headline') }}</span>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <span class="metric-index">01</span>
+            <h3>{{ t('stats.metric_1_title') }}</h3>
+            <strong class="metric-value" id="totalRecords">0</strong>
+            <p>{{ t('stats.metric_1_text') }}</p>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-index">02</span>
+            <h3>{{ t('stats.metric_2_title') }}</h3>
+            <strong class="metric-value" id="favoriteRecords">0</strong>
+            <p>{{ t('stats.metric_2_text') }}</p>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-index">03</span>
+            <h3>{{ t('stats.metric_3_title') }}</h3>
+            <strong class="metric-value" id="totalWords">0</strong>
+            <p>{{ t('stats.metric_3_text') }}</p>
+          </div>
+
+          <div class="metric-card">
+            <span class="metric-index">04</span>
+            <h3>{{ t('stats.metric_4_title') }}</h3>
+            <strong class="metric-value" id="avgWords">0</strong>
+            <p>{{ t('stats.metric_4_text') }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-bottom">
+        <div class="chart-card">
+          <span class="badge">{{ t('stats.chart_badge') }}</span>
+          <h2>{{ t('stats.chart_title') }}</h2>
+          <p>{{ t('stats.chart_text') }}</p>
+
+          <div class="chart-wrap">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="insight-card">
+          <span class="badge">{{ t('stats.insight_badge') }}</span>
+          <h2>{{ t('stats.insight_title') }}</h2>
+          <p>{{ t('stats.insight_text') }}</p>
+
+          <div class="insight-list">
+            <div class="insight-item">
+              <strong>{{ t('stats.insight_1_title') }}</strong>
+              <span>{{ t('stats.insight_1_text') }}</span>
+            </div>
+
+            <div class="insight-item">
+              <strong>{{ t('stats.insight_2_title') }}</strong>
+              <span>{{ t('stats.insight_2_text') }}</span>
+            </div>
+
+            <div class="insight-item">
+              <strong>{{ t('stats.insight_3_title') }}</strong>
+              <span>{{ t('stats.insight_3_text') }}</span>
+            </div>
+          </div>
+
+          <div class="dynamic-note" id="dynamicNote">
+            {{ t('stats.note_empty') }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(async () => {
+  const TEXTS = {
+    noteEmpty: "{{ t('stats.note_empty') }}",
+    noteInitial: "{{ t('stats.note_initial') }}",
+    noteReady: "{{ t('stats.note_ready') }}",
+    chartLabel: "{{ t('nav.analytics') }}"
+  };
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  try {
+    const response = await fetch("/api/stats");
+    const data = await response.json();
+
+    if (!response.ok) return;
+
+    const totalRecords = data.total_records || 0;
+    const favoriteRecords = data.favorite_records || 0;
+    const totalWords = data.total_words || 0;
+    const avgWords = data.avg_words || 0;
+
+    setText("headlineMetric", totalRecords);
+    setText("totalRecords", totalRecords);
+    setText("favoriteRecords", favoriteRecords);
+    setText("totalWords", totalWords.toLocaleString());
+    setText("avgWords", avgWords);
+
+    const dynamicNote = document.getElementById("dynamicNote");
+    if (dynamicNote) {
+      if (totalRecords === 0) {
+        dynamicNote.textContent = TEXTS.noteEmpty;
+      } else if (totalRecords < 5) {
+        dynamicNote.textContent = TEXTS.noteInitial;
+      } else {
+        dynamicNote.textContent = TEXTS.noteReady;
+      }
+    }
+
+    const ctx = document.getElementById("activityChart");
+    if (ctx && Array.isArray(data.daily_activity)) {
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.daily_activity.map(item => item.date),
+          datasets: [{
+            label: TEXTS.chartLabel,
+            data: data.daily_activity.map(item => item.count),
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            backgroundColor: "rgba(124, 58, 237, 0.16)",
+            borderColor: "rgba(124, 58, 237, 1)"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#dbe7ff"
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: "#94a3b8"
+              },
+              grid: {
+                color: "rgba(255,255,255,0.06)"
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: "#94a3b8",
+                precision: 0
+              },
+              grid: {
+                color: "rgba(255,255,255,0.06)"
+              }
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+})();
 </script>
 {% endblock %}

@@ -1,56 +1,433 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="page-wrap">
-    <h1 class="page-title">{{ locale.settings }}</h1>
-    <div class="panel max-w-2xl mx-auto">
-        <form id="settingsForm" method="POST">
-            {{ form.hidden_tag() }}
-            <div class="mb-4">
-                {{ form.username.label(class_="block text-gray-300 mb-2") }}
-                {{ form.username(class_="input-premium") }}
-                {% for error in form.username.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-4">
-                {{ form.email.label(class_="block text-gray-300 mb-2") }}
-                {{ form.email(class_="input-premium") }}
-                {% for error in form.email.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-4">
-                {{ form.password.label(class_="block text-gray-300 mb-2") }}
-                {{ form.password(class_="input-premium", placeholder=locale.password_leave_blank) }}
-                {% for error in form.password.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mb-4">
-                {{ form.confirm.label(class_="block text-gray-300 mb-2") }}
-                {{ form.confirm(class_="input-premium") }}
-                {% for error in form.confirm.errors %}
-                    <span class="text-red-400 text-sm">{{ error }}</span>
-                {% endfor %}
-            </div>
-            <div class="mt-8 text-center">
-    <button id="restartOnboardingBtn" class="glass px-4 py-2 rounded-full hover:bg-white/10 transition">
-        🔄 {{ locale.restart_onboarding }}
-    </button>
-</div>
-            <button type="submit" class="btn-premium text-white px-8 py-2 rounded-full">{{ locale.save_changes }}</button>
-        </form>
-        <div id="settingsMessage" class="mt-4"></div>
-    </div>
-</div>
+{% block title %}{{ t('settings.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 0.84fr 1.16fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .settings-panel {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
+  }
+
+  .settings-side h2,
+  .settings-main h1,
+  .danger-card h3 {
+    margin: 12px 0 10px;
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .settings-side h2 {
+    font-size: clamp(28px, 4vw, 40px);
+  }
+
+  .settings-main h1 {
+    font-size: clamp(30px, 4vw, 46px);
+  }
+
+  .settings-side p,
+  .settings-main p,
+  .danger-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .settings-user {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin: 20px 0 18px;
+  }
+
+  .settings-avatar {
+    width: 74px;
+    height: 74px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    font-size: 28px;
+    font-weight: 800;
+    box-shadow: 0 14px 34px rgba(124,58,237,0.3);
+    flex-shrink: 0;
+  }
+
+  .settings-user h3 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: -0.03em;
+  }
+
+  .settings-user span {
+    color: var(--muted);
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .settings-note-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .settings-note-item {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+  }
+
+  .settings-note-item strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  .settings-main-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .settings-chip {
+    padding: 12px 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #dbe7ff;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+
+  .settings-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-card {
+    padding: 20px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .form-card h3 {
+    margin: 0 0 10px;
+    font-size: 22px;
+  }
+
+  .form-card p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    line-height: 1.68;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #dbe7ff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .settings-input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: white;
+    outline: none;
+  }
+
+  .settings-input:focus {
+    border-color: rgba(124,58,237,0.55);
+    box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+  }
+
+  .input-helper {
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .submit-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .password-state {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-size: 13px;
+  }
+
+  .danger-card {
+    margin-top: 18px;
+    padding: 20px;
+    border-radius: 24px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.16);
+  }
+
+  .danger-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 1080px) {
+    .settings-layout,
+    .settings-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .settings-main-top,
+    .settings-user {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .submit-row .btn,
+    .danger-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
 {% endblock %}
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="settings-layout">
+      <div class="settings-panel settings-side">
+        <span class="badge">{{ t('settings.badge') }}</span>
+
+        <div class="settings-user">
+          <div class="settings-avatar">
+            {{ current_user.username[0]|upper if current_user.username else 'U' }}
+          </div>
+
+          <div>
+            <h3>{{ current_user.username }}</h3>
+            <span>{{ current_user.email }}</span>
+          </div>
+        </div>
+
+        <h2>{{ t('settings.side_title') }}</h2>
+        <p>{{ t('settings.side_text') }}</p>
+
+        <div class="settings-note-list">
+          <div class="settings-note-item">
+            <strong>{{ t('settings.note_1_title') }}</strong>
+            {{ t('settings.note_1_text') }}
+          </div>
+
+          <div class="settings-note-item">
+            <strong>{{ t('settings.note_2_title') }}</strong>
+            {{ t('settings.note_2_text') }}
+          </div>
+
+          <div class="settings-note-item">
+            <strong>{{ t('settings.note_3_title') }}</strong>
+            {{ t('settings.note_3_text') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-panel settings-main">
+        <div class="settings-main-top">
+          <div>
+            <span class="badge">{{ t('settings.badge') }}</span>
+            <h1>{{ t('settings.title') }}</h1>
+            <p>{{ t('settings.subtitle') }}</p>
+          </div>
+
+          <div class="settings-chip">{{ t('settings.chip') }}</div>
+        </div>
+
+        <form method="POST">
+          {{ form.hidden_tag() if form }}
+
+          <div class="settings-row">
+            <div class="form-card">
+              <h3>{{ t('settings.identity_title') }}</h3>
+              <p>{{ t('settings.identity_text') }}</p>
+
+              <div class="form-group">
+                <label>{{ t('settings.username') }}</label>
+                {% if form and form.username %}
+                  {{ form.username(class="settings-input", placeholder=t('settings.username_placeholder')) }}
+                {% else %}
+                  <input
+                    type="text"
+                    name="username"
+                    class="settings-input"
+                    value="{{ current_user.username }}"
+                    placeholder="{{ t('settings.username_placeholder') }}"
+                  >
+                {% endif %}
+              </div>
+
+              <div class="form-group">
+                <label>{{ t('settings.email') }}</label>
+                {% if form and form.email %}
+                  {{ form.email(class="settings-input", placeholder=t('settings.email_placeholder')) }}
+                {% else %}
+                  <input
+                    type="email"
+                    name="email"
+                    class="settings-input"
+                    value="{{ current_user.email }}"
+                    placeholder="{{ t('settings.email_placeholder') }}"
+                  >
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="form-card">
+              <h3>{{ t('settings.security_title') }}</h3>
+              <p>{{ t('settings.security_text') }}</p>
+
+              <div class="form-group">
+                <label>{{ t('settings.new_password') }}</label>
+                {% if form and form.password %}
+                  {{ form.password(class="settings-input", placeholder=t('settings.new_password_placeholder'), id="passwordField") }}
+                {% else %}
+                  <input
+                    type="password"
+                    name="password"
+                    id="passwordField"
+                    class="settings-input"
+                    placeholder="{{ t('settings.new_password_placeholder') }}"
+                  >
+                {% endif %}
+                <span class="input-helper">{{ t('settings.password_hint') }}</span>
+              </div>
+
+              <div class="form-group">
+                <label>{{ t('settings.confirm_password') }}</label>
+                {% if form and form.confirm %}
+                  {{ form.confirm(class="settings-input", placeholder=t('settings.confirm_password_placeholder'), id="confirmField") }}
+                {% else %}
+                  <input
+                    type="password"
+                    name="confirm"
+                    id="confirmField"
+                    class="settings-input"
+                    placeholder="{{ t('settings.confirm_password_placeholder') }}"
+                  >
+                {% endif %}
+              </div>
+
+              <div class="password-state" id="passwordState">
+                {{ t('settings.password_idle') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <button type="submit" class="btn btn-primary">{{ t('settings.save') }}</button>
+            <a href="{{ url_for('main.profile') }}" class="btn btn-soft">{{ t('settings.back') }}</a>
+          </div>
+        </form>
+
+        <div class="danger-card">
+          <h3>{{ t('settings.danger_title') }}</h3>
+          <p>{{ t('settings.danger_text') }}</p>
+
+          <div class="danger-actions">
+            <form method="POST" action="{{ url_for('auth.delete_account') }}" data-confirm="{{ t('settings.confirm_delete') }}">
+              <button type="submit" class="btn btn-danger">{{ t('settings.delete_account') }}</button>
+            </form>
+
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-soft">{{ t('settings.sign_out') }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    document.getElementById('restartOnboardingBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('onboardingCompleted');
-        if (window.restartOnboarding) window.restartOnboarding();
-        else location.reload(); // fallback
-    });
+(() => {
+  const TEXTS = {
+    idle: "{{ t('settings.password_idle') }}",
+    short: "{{ t('settings.password_short') }}",
+    mismatch: "{{ t('settings.password_mismatch') }}",
+    ready: "{{ t('settings.password_ready') }}",
+    confirmNeeded: "{{ t('settings.password_confirm_needed') }}"
+  };
+
+  const passwordField = document.getElementById("passwordField");
+  const confirmField = document.getElementById("confirmField");
+  const passwordState = document.getElementById("passwordState");
+
+  function updatePasswordState() {
+    if (!passwordState || !passwordField || !confirmField) return;
+
+    const password = passwordField.value.trim();
+    const confirm = confirmField.value.trim();
+
+    if (!password && !confirm) {
+      passwordState.textContent = TEXTS.idle;
+      return;
+    }
+
+    if (password.length > 0 && password.length < 8) {
+      passwordState.textContent = TEXTS.short;
+      return;
+    }
+
+    if (password && confirm && password !== confirm) {
+      passwordState.textContent = TEXTS.mismatch;
+      return;
+    }
+
+    if (password && confirm && password === confirm) {
+      passwordState.textContent = TEXTS.ready;
+      return;
+    }
+
+    passwordState.textContent = TEXTS.confirmNeeded;
+  }
+
+  passwordField?.addEventListener("input", updatePasswordState);
+  confirmField?.addEventListener("input", updatePasswordState);
+  updatePasswordState();
+})();
 </script>
 {% endblock %}
