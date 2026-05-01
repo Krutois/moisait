@@ -1,7 +1,10 @@
-from flask import Flask, session
+from flask import Flask, session, redirect, url_for, request
 from config import DevelopmentConfig, ProductionConfig
 from extensions import db, login_manager, limiter, csrf, migrate, bcrypt
 from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
+from flask_admin import Admin, AdminIndexView
+from flask_admin.contrib.sqla import ModelView
+from flask_login import current_user
 import os
 
 
@@ -63,6 +66,45 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+    def is_admin_user():
+        allowed_emails = {
+            email.strip().lower()
+            for email in os.getenv("ADMIN_EMAILS", "").split(",")
+            if email.strip()
+        }
+
+        return (
+            current_user.is_authenticated
+            and current_user.email
+            and current_user.email.lower() in allowed_emails
+        )
+
+    class SecureAdminIndexView(AdminIndexView):
+        def is_accessible(self):
+            return is_admin_user()
+
+        def inaccessible_callback(self, name, **kwargs):
+            return redirect(url_for("auth.login", next=request.url))
+
+    class SecureModelView(ModelView):
+        def is_accessible(self):
+            return is_admin_user()
+
+        def inaccessible_callback(self, name, **kwargs):
+            return redirect(url_for("auth.login", next=request.url))
+
+    admin = Admin(
+        app,
+        name="VoiceFlow Admin",
+        template_mode="bootstrap4",
+        index_view=SecureAdminIndexView(url="/admin")
+    )
+
+    admin.add_view(SecureModelView(User, db.session))
+    admin.add_view(SecureModelView(Transcription, db.session))
+    admin.add_view(SecureModelView(Favorite, db.session))
+    admin.add_view(SecureModelView(UserStats, db.session))
 
     @app.errorhandler(404)
     def not_found(error):
