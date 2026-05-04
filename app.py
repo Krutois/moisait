@@ -94,7 +94,6 @@ def create_app():
     admin = Admin(
         app,
         name="VoiceFlow Admin",
-        template_mode="bootstrap4",
         index_view=SecureAdminIndexView(url="/admin")
     )
 
