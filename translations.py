@@ -477,6 +477,14 @@ TRANSLATIONS = {
         "common.results": "Нәтижелер",
         "common.no_data": "Дерек жоқ",
         "common.confirm": "Растайсың ба?",
+        # kk
+        "demo.study_mode": "Оқу режимі",
+        "demo.study_loading": "Жүктелуде...",
+        "demo.study_mode_title": "Оқу пакеті",
+        "demo.study_mode_subtitle": "Қазіргі мәтіннен summary, терминдер, flashcards және quiz жасалады.",
+        "demo.study_no_terms": "Терминдер табылмады",
+        "demo.study_no_flashcards": "Flashcards жасалмады",
+        "demo.study_no_quiz": "Quiz жасалмады",
     },
 
     "ru": {
@@ -954,6 +962,14 @@ TRANSLATIONS = {
         "common.results": "Результаты",
         "common.no_data": "Нет данных",
         "common.confirm": "Подтверждаешь?",
+        # ru
+        "demo.study_mode": "Учебный режим",
+        "demo.study_loading": "Загрузка...",
+        "demo.study_mode_title": "Учебный пакет",
+        "demo.study_mode_subtitle": "Из текущего текста создаются summary, термины, flashcards и quiz.",
+        "demo.study_no_terms": "Термины не найдены",
+        "demo.study_no_flashcards": "Flashcards не созданы",
+        "demo.study_no_quiz": "Quiz не создан",
     },
 
     "en": {
@@ -1431,5 +1447,13 @@ TRANSLATIONS = {
         "common.results": "Results",
         "common.no_data": "No data",
         "common.confirm": "Are you sure?",
+        # en
+        "demo.study_mode": "Study Mode",
+        "demo.study_loading": "Loading...",
+        "demo.study_mode_title": "Learning Pack",
+        "demo.study_mode_subtitle": "Summary, key terms, flashcards, and quiz are generated from the current text.",
+        "demo.study_no_terms": "No key terms found",
+        "demo.study_no_flashcards": "No flashcards generated",
+        "demo.study_no_quiz": "No quiz generated",
     },
 }

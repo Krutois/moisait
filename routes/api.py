@@ -15,9 +15,6 @@ from models import Favorite, Transcription, UserStats, User
 bp = Blueprint("api", __name__, url_prefix="/api")
 
 
-# =========================
-# HELPERS
-# =========================
 def _build_export_content(transcription):
     lines = [
         "VoiceFlow Export",
@@ -65,9 +62,6 @@ def _find_unicode_font():
     return None
 
 
-# =========================
-# SAVE TRANSCRIPTION
-# =========================
 @bp.route("/transcribe", methods=["POST"])
 @bp.route("/history", methods=["POST"])
 @limiter.limit("20 per minute")
@@ -104,9 +98,6 @@ def save_transcription():
     }), 201
 
 
-# =========================
-# GET HISTORY
-# =========================
 @bp.route("/history", methods=["GET"])
 @login_required
 def get_history():
@@ -115,6 +106,7 @@ def get_history():
     search = request.args.get("search", "").strip()
     language = request.args.get("language", "").strip()
     source = request.args.get("source", "").strip()
+    favorites_only = request.args.get("favorites_only", "").lower() in {"1", "true", "yes"}
 
     pagination = TranscriptionService.get_user_history(
         user_id=current_user.id,
@@ -123,6 +115,7 @@ def get_history():
         search=search,
         language=language,
         source=source,
+        favorites_only=favorites_only,
     )
 
     return jsonify({
@@ -134,22 +127,15 @@ def get_history():
     })
 
 
-# =========================
-# DELETE TRANSCRIPTION
-# =========================
 @bp.route("/history/<int:item_id>", methods=["DELETE"])
 @login_required
 @csrf.exempt
 def delete_transcription(item_id):
     if TranscriptionService.delete_transcription(item_id, current_user.id):
         return jsonify({"status": "deleted"})
-
     return jsonify({"error": "Not found or unauthorized"}), 404
 
 
-# =========================
-# TOGGLE FAVORITE
-# =========================
 @bp.route("/history/<int:item_id>/favorite", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -199,9 +185,6 @@ def toggle_favorite(item_id):
     })
 
 
-# =========================
-# GET FAVORITES
-# =========================
 @bp.route("/favorites", methods=["GET"])
 @login_required
 def get_favorites():
@@ -228,9 +211,6 @@ def get_favorites():
     ])
 
 
-# =========================
-# EXPORT TXT
-# =========================
 @bp.route("/history/<int:item_id>/export/txt", methods=["GET"])
 @bp.route("/export/<int:item_id>/txt", methods=["GET"])
 @login_required
@@ -253,9 +233,6 @@ def export_text(item_id):
     return response
 
 
-# =========================
-# EXPORT PDF
-# =========================
 @bp.route("/history/<int:item_id>/export", methods=["GET"])
 @bp.route("/history/<int:item_id>/export/pdf", methods=["GET"])
 @bp.route("/export/<int:item_id>", methods=["GET"])
@@ -336,9 +313,6 @@ def export_pdf(item_id):
     )
 
 
-# =========================
-# AI CORRECT
-# =========================
 @bp.route("/ai/correct", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
@@ -353,9 +327,6 @@ def ai_correct():
     return jsonify({"result": result})
 
 
-# =========================
-# AI PARAPHRASE
-# =========================
 @bp.route("/ai/paraphrase", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
@@ -370,9 +341,6 @@ def ai_paraphrase():
     return jsonify({"result": result})
 
 
-# =========================
-# AI TRANSLATE
-# =========================
 @bp.route("/ai/translate", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
@@ -390,9 +358,6 @@ def ai_translate():
     return jsonify({"result": result})
 
 
-# =========================
-# AI SUMMARIZE
-# =========================
 @bp.route("/ai/summarize", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
@@ -407,9 +372,6 @@ def ai_summarize():
     return jsonify({"result": result})
 
 
-# =========================
-# AI LECTURE SUMMARY
-# =========================
 @bp.route("/ai/lecture-summary", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
@@ -425,7 +387,7 @@ def lecture_summary():
         summary_type = "lecture"
 
     if not text:
-        return jsonify({"error": "Нет текста"}), 400
+        return jsonify({"error": "Text is required"}), 400
 
     result, error = AIService.lecture_summary_text(
         text,
@@ -438,9 +400,24 @@ def lecture_summary():
     return jsonify(result)
 
 
-# =========================
-# STATS
-# =========================
+@bp.route("/ai/study-mode", methods=["POST"])
+@limiter.limit("10 per minute")
+@login_required
+@csrf.exempt
+def ai_study_mode():
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
+
+    if not text:
+        return jsonify({"error": "Text is required"}), 400
+
+    result, error = AIService.study_mode_text(text)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify(result)
+
+
 @bp.route("/stats", methods=["GET"])
 @login_required
 def get_stats():
@@ -497,9 +474,6 @@ def get_stats():
     })
 
 
-# =========================
-# UPDATE USER
-# =========================
 @bp.route("/user", methods=["PUT"])
 @login_required
 @csrf.exempt

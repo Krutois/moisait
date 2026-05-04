@@ -5,7 +5,7 @@
 <style>
   .workspace {
     display: grid;
-    grid-template-columns: 1.24fr 0.76fr;
+    grid-template-columns: 1.18fr 0.82fr;
     gap: 20px;
     align-items: start;
   }
@@ -176,7 +176,7 @@
 
   .summary-box {
     margin-top: 14px;
-    min-height: 260px;
+    min-height: 180px;
     padding: 18px;
     border-radius: 22px;
     background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
@@ -184,10 +184,136 @@
     color: #eef4ff;
     line-height: 1.72;
     white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .summary-empty {
     color: var(--muted);
+  }
+
+  .study-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .study-tab {
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #dbe7ff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .study-tab.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    border-color: transparent;
+  }
+
+  .study-panel {
+    margin-top: 14px;
+    padding: 16px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
+    border: 1px solid rgba(255,255,255,0.06);
+    min-height: 260px;
+  }
+
+  .study-panel-inner {
+    display: none;
+  }
+
+  .study-panel-inner.active {
+    display: block;
+  }
+
+  .study-meta {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .study-meta strong {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .study-meta span {
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .term-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .term-chip {
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(124,58,237,0.14);
+    border: 1px solid rgba(124,58,237,0.18);
+    color: #ddd6fe;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .flashcard-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .flashcard {
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .flashcard .front {
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #ffffff;
+  }
+
+  .flashcard .back {
+    color: #dbe7ff;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .quiz-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .quiz-item {
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .quiz-item .q {
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+    line-height: 1.6;
+  }
+
+  .quiz-item .a,
+  .quiz-item .e {
+    color: #dbe7ff;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .mini-grid {
@@ -357,11 +483,25 @@
     }
 
     .summary-box {
-      min-height: 180px;
+      min-height: 160px;
       font-size: 15px;
       line-height: 1.65;
       border-radius: 20px;
       padding: 16px;
+    }
+
+    .study-tabs {
+      gap: 6px;
+    }
+
+    .study-tab {
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+
+    .study-panel {
+      min-height: 220px;
+      padding: 14px;
     }
 
     .side-card h3 {
@@ -468,6 +608,7 @@
           </select>
 
           <button type="button" class="btn btn-primary" id="summaryBtn">{{ t('demo.generate') }}</button>
+          <button type="button" class="btn btn-soft" id="studyBtn">{{ t('demo.study_mode') }}</button>
         </div>
 
         <div class="editor-box">
@@ -506,11 +647,38 @@
         </div>
 
         <div class="side-card">
-          <h3>{{ t('demo.side_summary_title') }}</h3>
-          <p>{{ t('demo.side_summary_text') }}</p>
+          <h3>{{ t('demo.study_mode_title') }}</h3>
+          <p>{{ t('demo.study_mode_subtitle') }}</p>
 
-          <div class="summary-box" id="summaryBox">
-            <span class="summary-empty">{{ t('demo.side_summary_empty') }}</span>
+          <div class="study-tabs">
+            <button type="button" class="study-tab active" data-tab="summaryTab">Summary</button>
+            <button type="button" class="study-tab" data-tab="termsTab">Key Terms</button>
+            <button type="button" class="study-tab" data-tab="flashcardsTab">Flashcards</button>
+            <button type="button" class="study-tab" data-tab="quizTab">Quiz</button>
+          </div>
+
+          <div class="study-panel">
+            <div class="study-panel-inner active" id="summaryTab">
+              <div class="study-meta">
+                <strong id="packTitle">{{ t('demo.study_mode_title') }}</strong>
+                <span id="packSubtitle">{{ t('demo.study_mode_subtitle') }}</span>
+              </div>
+              <div class="summary-box" id="summaryBox">
+                <span class="summary-empty">{{ t('demo.side_summary_empty') }}</span>
+              </div>
+            </div>
+
+            <div class="study-panel-inner" id="termsTab">
+              <div class="term-list" id="termsList"></div>
+            </div>
+
+            <div class="study-panel-inner" id="flashcardsTab">
+              <div class="flashcard-list" id="flashcardsList"></div>
+            </div>
+
+            <div class="study-panel-inner" id="quizTab">
+              <div class="quiz-list" id="quizList"></div>
+            </div>
           </div>
         </div>
 
@@ -543,6 +711,12 @@
     generate: "{{ t('demo.generate') }}",
     generateLoading: "{{ t('demo.generate_loading') }}",
     summaryEmpty: "{{ t('demo.side_summary_empty') }}",
+    studyLoading: "{{ t('demo.study_loading') }}",
+    studyModeTitle: "{{ t('demo.study_mode_title') }}",
+    studyModeSubtitle: "{{ t('demo.study_mode_subtitle') }}",
+    studyNoTerms: "{{ t('demo.study_no_terms') }}",
+    studyNoFlashcards: "{{ t('demo.study_no_flashcards') }}",
+    studyNoQuiz: "{{ t('demo.study_no_quiz') }}",
 
     toastNoTextCopy: "{{ t('demo.toast_no_text_copy') }}",
     toastCopied: "{{ t('demo.toast_copied') }}",
@@ -565,6 +739,7 @@
   const copyBtn = document.getElementById("copyBtn");
   const clearBtn = document.getElementById("clearBtn");
   const summaryBtn = document.getElementById("summaryBtn");
+  const studyBtn = document.getElementById("studyBtn");
 
   const langSelect = document.getElementById("langSelect");
   const summaryTypeSelect = document.getElementById("summaryTypeSelect");
@@ -579,12 +754,22 @@
   const metricWords = document.getElementById("metricWords");
   const metricMinutes = document.getElementById("metricMinutes");
 
+  const packTitle = document.getElementById("packTitle");
+  const packSubtitle = document.getElementById("packSubtitle");
+  const termsList = document.getElementById("termsList");
+  const flashcardsList = document.getElementById("flashcardsList");
+  const quizList = document.getElementById("quizList");
+
+  const studyTabs = Array.from(document.querySelectorAll(".study-tab"));
+  const studyPanels = Array.from(document.querySelectorAll(".study-panel-inner"));
+
   let recognition = null;
   let isRecording = false;
   let timer = null;
   let seconds = 0;
   let finalTranscript = "";
-  let lastSummaryData = null;
+  let currentPack = null;
+  let currentMode = null;
 
   function toast(message, type = "info") {
     if (window.VoiceFlowUI && window.VoiceFlowUI.toast) {
@@ -703,6 +888,202 @@
     return recog;
   }
 
+  function clearActivePack() {
+    currentPack = null;
+    currentMode = null;
+    packTitle.textContent = TEXTS.studyModeTitle;
+    packSubtitle.textContent = TEXTS.studyModeSubtitle;
+    summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.summaryEmpty}</span>`;
+    termsList.innerHTML = "";
+    flashcardsList.innerHTML = "";
+    quizList.innerHTML = "";
+  }
+
+  function setActiveTab(tabId) {
+    studyTabs.forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.tab === tabId);
+    });
+
+    studyPanels.forEach((panel) => {
+      panel.classList.toggle("active", panel.id === tabId);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function renderPack(data, mode) {
+    currentPack = data || null;
+    currentMode = mode || "summary";
+
+    const title = data?.topic || TEXTS.studyModeTitle;
+    const subtitle = mode === "study"
+      ? TEXTS.studyModeSubtitle
+      : TEXTS.studyModeSubtitle;
+
+    packTitle.textContent = title;
+    packSubtitle.textContent = subtitle;
+    summaryBox.textContent = data?.structured || data?.summary || "";
+
+    termsList.innerHTML = "";
+    if (Array.isArray(data?.keywords) && data.keywords.length > 0) {
+      data.keywords.forEach((term) => {
+        const chip = document.createElement("span");
+        chip.className = "term-chip";
+        chip.textContent = term;
+        termsList.appendChild(chip);
+      });
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "summary-empty";
+      empty.textContent = TEXTS.studyNoTerms;
+      termsList.appendChild(empty);
+    }
+
+    flashcardsList.innerHTML = "";
+    if (Array.isArray(data?.flashcards) && data.flashcards.length > 0) {
+      data.flashcards.forEach((item, index) => {
+        const card = document.createElement("div");
+        card.className = "flashcard";
+        card.innerHTML = `
+          <div class="front">${index + 1}. ${escapeHtml(item.front || "")}</div>
+          <div class="back">${escapeHtml(item.back || "")}</div>
+        `;
+        flashcardsList.appendChild(card);
+      });
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "summary-empty";
+      empty.textContent = TEXTS.studyNoFlashcards;
+      flashcardsList.appendChild(empty);
+    }
+
+    quizList.innerHTML = "";
+    if (Array.isArray(data?.quiz) && data.quiz.length > 0) {
+      data.quiz.forEach((item, index) => {
+        const box = document.createElement("div");
+        box.className = "quiz-item";
+        box.innerHTML = `
+          <div class="q">${index + 1}. ${escapeHtml(item.question || "")}</div>
+          <div class="a"><strong>Answer:</strong> ${escapeHtml(item.answer || "")}</div>
+          ${item.explanation ? `<div class="e"><strong>Explanation:</strong> ${escapeHtml(item.explanation)}</div>` : ""}
+        `;
+        quizList.appendChild(box);
+      });
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "summary-empty";
+      empty.textContent = TEXTS.studyNoQuiz;
+      quizList.appendChild(empty);
+    }
+
+    setActiveTab("summaryTab");
+  }
+
+  async function generateSummary() {
+    const text = editor.value.trim();
+    if (!text) {
+      toast(TEXTS.toastNoTextSummary, "warning");
+      return;
+    }
+
+    summaryBtn.disabled = true;
+    studyBtn.disabled = true;
+    summaryBtn.textContent = TEXTS.generateLoading;
+
+    try {
+      const response = await fetch("/api/ai/lecture-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          summary_type: summaryTypeSelect.value
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        renderPack({
+          topic: data.topic || TEXTS.studyModeTitle,
+          summary: data.summary || "",
+          structured: data.structured || data.summary || "",
+          keywords: Array.isArray(data.keywords) ? data.keywords : [],
+          flashcards: [],
+          quiz: []
+        }, "summary");
+
+        toast(TEXTS.toastSummaryDone, "success");
+      } else {
+        summaryBox.innerHTML = `<span class="summary-empty">${data.error || TEXTS.toastSummaryFailed}</span>`;
+        toast(data.error || TEXTS.toastSummaryFailed, "error");
+      }
+    } catch (error) {
+      console.error(error);
+      summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.toastServerUnavailable}</span>`;
+      toast(TEXTS.toastServerUnavailable, "error");
+    } finally {
+      summaryBtn.disabled = false;
+      studyBtn.disabled = false;
+      summaryBtn.textContent = TEXTS.generate;
+    }
+  }
+
+  async function generateStudyMode() {
+    const text = editor.value.trim();
+    if (!text) {
+      toast(TEXTS.toastNoTextSummary, "warning");
+      return;
+    }
+
+    summaryBtn.disabled = true;
+    studyBtn.disabled = true;
+    studyBtn.textContent = TEXTS.studyLoading;
+
+    try {
+      const response = await fetch("/api/ai/study-mode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        renderPack({
+          topic: data.topic || TEXTS.studyModeTitle,
+          summary: data.summary || "",
+          structured: data.structured || data.summary || "",
+          keywords: Array.isArray(data.keywords) ? data.keywords : [],
+          flashcards: Array.isArray(data.flashcards) ? data.flashcards : [],
+          quiz: Array.isArray(data.quiz) ? data.quiz : []
+        }, "study");
+
+        toast(TEXTS.toastSummaryDone, "success");
+      } else {
+        toast(data.error || TEXTS.toastSummaryFailed, "error");
+      }
+    } catch (error) {
+      console.error(error);
+      toast(TEXTS.toastServerUnavailable, "error");
+    } finally {
+      summaryBtn.disabled = false;
+      studyBtn.disabled = false;
+      summaryBtn.textContent = TEXTS.generate;
+      studyBtn.textContent = TEXTS.studyModeTitle;
+    }
+  }
+
   startBtn.addEventListener("click", () => {
     if (!recognition) {
       recognition = setupRecognition();
@@ -723,8 +1104,7 @@
   clearBtn.addEventListener("click", () => {
     editor.value = "";
     finalTranscript = "";
-    lastSummaryData = null;
-    summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.summaryEmpty}</span>`;
+    clearActivePack();
     resetTimer();
     updateWordCount();
     setStatus(TEXTS.cleared, false);
@@ -754,6 +1134,14 @@
       return;
     }
 
+    const payload = currentPack
+      ? {
+          summary: currentPack.structured || currentPack.summary || "",
+          summary_type: currentMode === "study" ? "study" : (summaryTypeSelect.value || "lecture"),
+          keywords: Array.isArray(currentPack.keywords) ? currentPack.keywords : []
+        }
+      : null;
+
     try {
       const response = await fetch("/api/history", {
         method: "POST",
@@ -764,8 +1152,8 @@
           text,
           language: langSelect.value,
           duration: seconds,
-          source: "demo",
-          summary_data: lastSummaryData
+          source: currentMode === "study" ? "study" : "demo",
+          summary_data: payload
         })
       });
 
@@ -782,53 +1170,8 @@
     }
   });
 
-  summaryBtn.addEventListener("click", async () => {
-    const text = editor.value.trim();
-    if (!text) {
-      toast(TEXTS.toastNoTextSummary, "warning");
-      return;
-    }
-
-    summaryBtn.disabled = true;
-    summaryBtn.textContent = TEXTS.generateLoading;
-
-    try {
-      const response = await fetch("/api/ai/lecture-summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text,
-          summary_type: summaryTypeSelect.value
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        summaryBox.textContent = data.structured || data.summary || TEXTS.toastSummaryDone;
-
-        lastSummaryData = {
-          summary: data.structured || data.summary || "",
-          summary_type: data.summary_type || summaryTypeSelect.value || "lecture",
-          keywords: Array.isArray(data.keywords) ? data.keywords : []
-        };
-
-        toast(TEXTS.toastSummaryDone, "success");
-      } else {
-        summaryBox.innerHTML = `<span class="summary-empty">${data.error || TEXTS.toastSummaryFailed}</span>`;
-        toast(data.error || TEXTS.toastSummaryFailed, "error");
-      }
-    } catch (error) {
-      console.error(error);
-      summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.toastServerUnavailable}</span>`;
-      toast(TEXTS.toastServerUnavailable, "error");
-    } finally {
-      summaryBtn.disabled = false;
-      summaryBtn.textContent = TEXTS.generate;
-    }
-  });
+  summaryBtn.addEventListener("click", generateSummary);
+  studyBtn.addEventListener("click", generateStudyMode);
 
   editor.addEventListener("input", updateWordCount);
 
@@ -836,8 +1179,15 @@
     toast(TEXTS.toastLangSelected, "info");
   });
 
+  studyTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setActiveTab(tab.dataset.tab);
+    });
+  });
+
   updateTimer();
   updateWordCount();
+  clearActivePack();
 })();
 </script>
 {% endblock %}
