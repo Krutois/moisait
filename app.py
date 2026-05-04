@@ -1,10 +1,11 @@
 from flask import Flask, session, redirect, url_for, request
-from config import DevelopmentConfig, ProductionConfig
-from extensions import db, login_manager, limiter, csrf, migrate, bcrypt
-from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
 from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user
+
+from config import DevelopmentConfig, ProductionConfig
+from extensions import db, login_manager, limiter, csrf, migrate, bcrypt
+from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
 import os
 
 
@@ -64,16 +65,12 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
 
-    with app.app_context():
-        db.create_all()
-
     def is_admin_user():
         allowed_emails = {
             email.strip().lower()
             for email in os.getenv("ADMIN_EMAILS", "").split(",")
             if email.strip()
         }
-
         return (
             current_user.is_authenticated
             and current_user.email
@@ -105,6 +102,9 @@ def create_app():
     admin.add_view(SecureModelView(Transcription, db.session))
     admin.add_view(SecureModelView(Favorite, db.session))
     admin.add_view(SecureModelView(UserStats, db.session))
+
+    with app.app_context():
+        db.create_all()
 
     @app.errorhandler(404)
     def not_found(error):

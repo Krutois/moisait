@@ -8,7 +8,6 @@ def normalize_database_url(url: str | None) -> str:
     if not url:
         return "sqlite:///voiceflow.db"
 
-    # Render/Postgres compatibility
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql://", 1)
 
@@ -19,7 +18,6 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
     SQLALCHEMY_DATABASE_URI = normalize_database_url(os.getenv("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
     WTF_CSRF_ENABLED = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
