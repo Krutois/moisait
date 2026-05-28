@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}{{ t('demo.page_title') }}{% endblock %}
+{% block title %}{{ t('workspace.page_title') }}{% endblock %}
 
 {% block extra_css %}
 <style>
   .workspace {
     display: grid;
-    grid-template-columns: 1.18fr 0.82fr;
-    gap: 20px;
+    grid-template-columns: minmax(0, 1.32fr) minmax(340px, 0.68fr);
+    gap: 24px;
     align-items: start;
   }
 
   .workspace-panel {
     padding: 24px;
-    border-radius: 30px;
-    background: rgba(255,255,255,0.05);
+    border-radius: 24px;
+    background: rgba(255,255,255,0.052);
     border: 1px solid rgba(255,255,255,0.07);
     box-shadow: 0 16px 44px rgba(0,0,0,0.24);
   }
@@ -23,7 +23,7 @@
     justify-content: space-between;
     align-items: start;
     gap: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 24px;
   }
 
   .workspace-head h1 {
@@ -63,40 +63,141 @@
     color: #bbf7d0;
   }
 
-  .toolbar {
+  .toolbar,
+  .btn-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .toolbar {
+    margin-bottom: 16px;
   }
 
   .toolbar .btn {
-    min-width: 140px;
+    min-width: 132px;
   }
 
-  .toolbar select {
-    min-width: 190px;
-    padding: 14px 16px;
-    border-radius: 16px;
+  .toolbar-secondary {
+    margin-top: -6px;
+  }
+
+  .btn-muted-danger {
+    color: #fecaca;
+    border-color: rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.07);
+  }
+
+  .btn-muted-danger:hover {
+    background: rgba(239,68,68,0.12);
+  }
+
+  .control-stack {
+    display: grid;
+    gap: 14px;
+    margin: 20px 0 12px;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .field label {
+    color: #dbe7ff;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .field select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 16px;
+    border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.08);
     background: #111827;
     color: #ffffff;
     outline: none;
   }
 
-  .toolbar select option {
+  .field select option {
     background: #111827;
     color: #ffffff;
   }
 
-  .toolbar select option:checked {
+  .field select option:checked {
     background: #2563eb;
     color: #ffffff;
   }
 
-  .toolbar select:focus {
+  .field select:focus {
     border-color: rgba(124,58,237,0.55);
     box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+  }
+
+  .study-actions {
+    margin-top: 2px;
+  }
+
+  .upload-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+    gap: 12px;
+    align-items: stretch;
+    margin: 18px 0 6px;
+  }
+
+  .upload-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .upload-box {
+    min-width: 0;
+    min-height: 86px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1.5px dashed rgba(148,163,184,0.34);
+    background: linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.035));
+    color: #dbe7ff;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .upload-box:hover,
+  .upload-box:focus-within {
+    border-color: rgba(34,211,238,0.5);
+    background: rgba(34,211,238,0.06);
+  }
+
+  .upload-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  .upload-hint {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .editor-box {
@@ -152,12 +253,12 @@
 
   .side-column {
     display: grid;
-    gap: 16px;
+    gap: 18px;
   }
 
   .side-card {
-    padding: 20px;
-    border-radius: 26px;
+    padding: 24px;
+    border-radius: 24px;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.07);
     box-shadow: 0 12px 34px rgba(0,0,0,0.2);
@@ -193,20 +294,25 @@
 
   .study-tabs {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
     margin-top: 16px;
   }
 
   .study-tab {
-    padding: 10px 14px;
-    border-radius: 999px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 13px;
     border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.04);
     color: #dbe7ff;
     font-weight: 700;
     cursor: pointer;
     transition: .2s ease;
+  }
+
+  .study-tab:hover {
+    background: rgba(255,255,255,0.08);
   }
 
   .study-tab.active {
@@ -324,8 +430,9 @@
   }
 
   .mini-card {
+    min-height: 96px;
     padding: 16px;
-    border-radius: 20px;
+    border-radius: 18px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.06);
   }
@@ -347,8 +454,9 @@
     height: 72px;
     display: flex;
     align-items: end;
-    gap: 8px;
+    gap: 10px;
     margin-top: 14px;
+    padding: 0 2px;
   }
 
   .wave span {
@@ -390,9 +498,50 @@
     line-height: 1.65;
   }
 
+  .accessibility-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .accessibility-grid .btn {
+    width: 100%;
+    min-height: 54px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .workspace-section {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.065);
+    margin-top: 16px;
+  }
+
+  .workspace-section h2 {
+    margin: 0 0 12px;
+    font-size: 19px;
+  }
+
+  .workspace-section .toolbar,
+  .workspace-section .btn-group {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .workspace-section .btn {
+    width: 100%;
+    min-height: 52px;
+  }
+
   @media (max-width: 1080px) {
     .workspace {
       grid-template-columns: 1fr;
+      gap: 20px;
     }
   }
 
@@ -441,7 +590,8 @@
       justify-content: center;
     }
 
-    .toolbar {
+    .toolbar,
+    .btn-group {
       display: grid;
       grid-template-columns: 1fr;
       gap: 9px;
@@ -449,12 +599,27 @@
     }
 
     .toolbar .btn,
-    .toolbar select {
+    .btn-group .btn,
+    .field select {
       width: 100%;
       min-width: 0;
-      min-height: 48px;
       font-size: 15px;
       border-radius: 15px;
+    }
+
+    .field-grid,
+    .upload-row {
+      grid-template-columns: 1fr;
+    }
+
+    .upload-box,
+    .upload-row .btn {
+      width: 100%;
+      min-height: 48px;
+    }
+
+    .upload-box {
+      grid-template-columns: 1fr;
     }
 
     .editor {
@@ -572,63 +737,116 @@
       <div class="workspace-panel">
         <div class="workspace-head">
           <div>
-            <span class="badge">{{ t('demo.badge') }}</span>
-            <h1>{{ t('demo.title') }}</h1>
-            <p>{{ t('demo.subtitle') }}</p>
+            <span class="badge">{{ t('workspace.badge') }}</span>
+            <h1>{{ t('workspace.title') }}</h1>
+            <p>{{ t('workspace.subtitle') }}</p>
           </div>
 
           <div class="head-metrics">
-            <div class="head-pill" id="statusPill">{{ t('demo.status_idle') }}</div>
+            <div class="head-pill" id="statusPill">{{ t('workspace.status_idle') }}</div>
             <div class="head-pill" id="timerPill">00:00</div>
-            <div class="head-pill" id="wordsPill">0 {{ t('demo.metric_words') }}</div>
+            <div class="head-pill" id="wordsPill">0 {{ t('workspace.metric_words') }}</div>
           </div>
         </div>
 
-        <div class="toolbar">
-          <button type="button" class="btn btn-primary" id="startBtn">{{ t('demo.start') }}</button>
-          <button type="button" class="btn btn-soft" id="stopBtn" disabled>{{ t('demo.stop') }}</button>
-          <button type="button" class="btn btn-soft" id="saveBtn">{{ t('demo.save') }}</button>
-          <button type="button" class="btn btn-soft" id="copyBtn">{{ t('demo.copy') }}</button>
-          <button type="button" class="btn btn-soft" id="clearBtn">{{ t('demo.clear') }}</button>
+        <div class="workspace-section">
+          <h2>{{ t('workspace.record_block') }}</h2>
+          <div class="toolbar action-toolbar">
+            <button type="button" class="btn btn-primary" id="startBtn">{{ t('workspace.start') }}</button>
+            <button type="button" class="btn btn-secondary" id="stopBtn" disabled>{{ t('workspace.stop') }}</button>
+            <button type="button" class="btn btn-secondary" id="saveBtn">{{ t('workspace.save') }}</button>
+            <button type="button" class="btn btn-secondary" id="copyBtn">{{ t('workspace.copy') }}</button>
+          </div>
+
+          <div class="toolbar toolbar-secondary">
+            <button type="button" class="btn btn-muted btn-muted-danger" id="clearBtn">{{ t('workspace.clear') }}</button>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="langSelect">{{ t('nav.language') }}</label>
+              <select id="langSelect">
+                <option value="ru-RU" {% if current_lang == 'ru' %}selected{% endif %}>{{ t('workspace.lang_ru') }}</option>
+                <option value="kk-KZ" {% if current_lang == 'kk' %}selected{% endif %}>{{ t('workspace.lang_kk') }}</option>
+                <option value="en-US" {% if current_lang == 'en' %}selected{% endif %}>{{ t('workspace.lang_en') }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="summaryTypeSelect">{{ t('workspace.summary_format') }}</label>
+              <select id="summaryTypeSelect">
+                <option value="lecture">{{ t('workspace.format_lecture') }}</option>
+                <option value="short">{{ t('workspace.format_short') }}</option>
+                <option value="bullets">{{ t('workspace.format_bullets') }}</option>
+                <option value="exam">{{ t('workspace.format_exam') }}</option>
+                <option value="terms">{{ t('workspace.format_terms') }}</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="toolbar">
-          <select id="langSelect">
-            <option value="ru-RU" {% if current_lang == 'ru' %}selected{% endif %}>{{ t('demo.lang_ru') }}</option>
-            <option value="kk-KZ" {% if current_lang == 'kk' %}selected{% endif %}>{{ t('demo.lang_kk') }}</option>
-            <option value="en-US" {% if current_lang == 'en' %}selected{% endif %}>{{ t('demo.lang_en') }}</option>
-          </select>
-
-          <select id="summaryTypeSelect" title="{{ t('demo.summary_format') }}">
-            <option value="lecture">{{ t('demo.format_lecture') }}</option>
-            <option value="short">{{ t('demo.format_short') }}</option>
-            <option value="bullets">{{ t('demo.format_bullets') }}</option>
-            <option value="exam">{{ t('demo.format_exam') }}</option>
-            <option value="terms">{{ t('demo.format_terms') }}</option>
-          </select>
-
-          <button type="button" class="btn btn-primary" id="summaryBtn">{{ t('demo.generate') }}</button>
-          <button type="button" class="btn btn-soft" id="studyBtn">{{ t('demo.study_mode') }}</button>
+        <div class="workspace-section">
+          <h2>{{ t('workspace.upload_block') }}</h2>
+          <div class="upload-row">
+            <input
+              id="audioFile"
+              type="file"
+              accept=".mp3,.wav,.m4a,.webm,audio/*"
+              class="upload-input"
+              title="{{ t('workspace.audio_choose_file') }}"
+            >
+            <label class="upload-box" for="audioFile" aria-label="{{ t('workspace.upload_dropzone') }}">
+              <span class="upload-name" id="audioFileName">{{ t('workspace.upload_dropzone') }}</span>
+              <span class="upload-hint">mp3, wav, m4a, webm</span>
+            </label>
+            <button type="button" class="btn btn-secondary" id="uploadAudioBtn">{{ t('workspace.audio_transcribe_file') }}</button>
+          </div>
         </div>
 
-        <div class="editor-box">
-          <textarea
-            id="editor"
-            class="editor auto-resize"
-            placeholder="{{ t('demo.placeholder') }}"
-          ></textarea>
+        <div class="workspace-section">
+          <h2>{{ t('workspace.result_block') }}</h2>
+          <div class="editor-box">
+            <textarea
+              id="editor"
+              class="editor auto-resize"
+              placeholder="{{ t('workspace.input_hint') }}"
+            ></textarea>
 
-          <div class="editor-footer">
-            <div class="editor-note">{{ t('demo.editor_note') }}</div>
-            <div class="editor-state" id="liveState">{{ t('demo.editor_state_off') }}</div>
+            <div class="editor-footer">
+              <div class="editor-note">{{ t('workspace.editor_note') }}</div>
+              <div class="editor-state" id="liveState">{{ t('workspace.editor_state_off') }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="workspace-section">
+          <h2>{{ t('workspace.tools_block') }}</h2>
+          <div class="control-stack">
+          <div class="btn-group study-actions">
+            <button type="button" class="btn btn-primary" id="summaryBtn">{{ t('workspace.generate') }}</button>
+            <button type="button" class="btn btn-secondary" id="studyBtn">{{ t('workspace.study_mode') }}</button>
+          </div>
           </div>
         </div>
       </div>
 
       <div class="side-column">
         <div class="side-card">
-          <h3>{{ t('demo.side_status_title') }}</h3>
-          <p>{{ t('demo.side_status_text') }}</p>
+          <h3>{{ t('workspace.accessibility_mode') }}</h3>
+          <p>{{ t('workspace.accessibility_mode_text') }}</p>
+          <div class="accessibility-grid">
+            <a class="btn btn-primary" href="{{ url_for('main.subtitles') }}">{{ t('workspace.access_live') }}</a>
+            <a class="btn btn-primary" href="{{ url_for('main.lecture') }}">{{ t('workspace.access_lecture') }}</a>
+            <a class="btn btn-secondary" href="{{ url_for('main.dialog') }}">{{ t('workspace.access_dialog') }}</a>
+            <button type="button" class="btn btn-secondary" id="accessUploadBtn">{{ t('workspace.access_upload') }}</button>
+            <button type="button" class="btn btn-secondary" id="accessSaveBtn">{{ t('workspace.access_save') }}</button>
+            <a class="btn btn-secondary" href="{{ url_for('main.history') }}">{{ t('workspace.access_export') }}</a>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <h3>{{ t('workspace.side_status_title') }}</h3>
+          <p>{{ t('workspace.side_status_text') }}</p>
 
           <div class="wave" id="waveBlock">
             <span></span><span></span><span></span><span></span><span></span><span></span>
@@ -637,34 +855,34 @@
           <div class="mini-grid">
             <div class="mini-card">
               <strong id="metricWords">0</strong>
-              <span>{{ t('demo.metric_words') }}</span>
+              <span>{{ t('workspace.metric_words') }}</span>
             </div>
             <div class="mini-card">
               <strong id="metricMinutes">0</strong>
-              <span>{{ t('demo.metric_minutes') }}</span>
+              <span>{{ t('workspace.metric_minutes') }}</span>
             </div>
           </div>
         </div>
 
         <div class="side-card">
-          <h3>{{ t('demo.study_mode_title') }}</h3>
-          <p>{{ t('demo.study_mode_subtitle') }}</p>
+          <h3>{{ t('workspace.study_mode_title') }}</h3>
+          <p>{{ t('workspace.study_mode_subtitle') }}</p>
 
           <div class="study-tabs">
-            <button type="button" class="study-tab active" data-tab="summaryTab">Summary</button>
-            <button type="button" class="study-tab" data-tab="termsTab">Key Terms</button>
-            <button type="button" class="study-tab" data-tab="flashcardsTab">Flashcards</button>
-            <button type="button" class="study-tab" data-tab="quizTab">Quiz</button>
+            <button type="button" class="study-tab active" data-tab="summaryTab">{{ t('history.summary') }}</button>
+            <button type="button" class="study-tab" data-tab="termsTab">{{ t('history.keywords') }}</button>
+            <button type="button" class="study-tab" data-tab="flashcardsTab">{{ t('workspace.flashcards_tab') }}</button>
+            <button type="button" class="study-tab" data-tab="quizTab">{{ t('workspace.quiz_tab') }}</button>
           </div>
 
           <div class="study-panel">
             <div class="study-panel-inner active" id="summaryTab">
               <div class="study-meta">
-                <strong id="packTitle">{{ t('demo.study_mode_title') }}</strong>
-                <span id="packSubtitle">{{ t('demo.study_mode_subtitle') }}</span>
+                <strong id="packTitle">{{ t('workspace.study_mode_title') }}</strong>
+                <span id="packSubtitle">{{ t('workspace.study_mode_subtitle') }}</span>
               </div>
               <div class="summary-box" id="summaryBox">
-                <span class="summary-empty">{{ t('demo.side_summary_empty') }}</span>
+                <span class="summary-empty">{{ t('workspace.side_summary_empty') }}</span>
               </div>
             </div>
 
@@ -683,11 +901,11 @@
         </div>
 
         <div class="side-card">
-          <h3>{{ t('demo.side_why_title') }}</h3>
+          <h3>{{ t('workspace.side_why_title') }}</h3>
           <div class="use-list">
-            <div>{{ t('demo.side_why_1') }}</div>
-            <div>{{ t('demo.side_why_2') }}</div>
-            <div>{{ t('demo.side_why_3') }}</div>
+            <div>{{ t('workspace.side_why_1') }}</div>
+            <div>{{ t('workspace.side_why_2') }}</div>
+            <div>{{ t('workspace.side_why_3') }}</div>
           </div>
         </div>
       </div>
@@ -700,37 +918,50 @@
 <script>
 (() => {
   const TEXTS = {
-    idle: "{{ t('demo.status_idle') }}",
-    recording: "{{ t('demo.status_recording') }}",
-    error: "{{ t('demo.status_error') }}",
-    cleared: "{{ t('demo.status_cleared') }}",
-    words: "{{ t('demo.metric_words') }}",
-    minutes: "{{ t('demo.metric_minutes') }}",
-    micOff: "{{ t('demo.editor_state_off') }}",
-    micOn: "{{ t('demo.editor_state_on') }}",
-    generate: "{{ t('demo.generate') }}",
-    generateLoading: "{{ t('demo.generate_loading') }}",
-    summaryEmpty: "{{ t('demo.side_summary_empty') }}",
-    studyLoading: "{{ t('demo.study_loading') }}",
-    studyModeTitle: "{{ t('demo.study_mode_title') }}",
-    studyModeSubtitle: "{{ t('demo.study_mode_subtitle') }}",
-    studyNoTerms: "{{ t('demo.study_no_terms') }}",
-    studyNoFlashcards: "{{ t('demo.study_no_flashcards') }}",
-    studyNoQuiz: "{{ t('demo.study_no_quiz') }}",
+    idle: "{{ t('workspace.status_idle') }}",
+    recording: "{{ t('workspace.status_recording') }}",
+    error: "{{ t('workspace.status_error') }}",
+    cleared: "{{ t('workspace.status_cleared') }}",
+    words: "{{ t('workspace.metric_words') }}",
+    minutes: "{{ t('workspace.metric_minutes') }}",
+    micOff: "{{ t('workspace.editor_state_off') }}",
+    micOn: "{{ t('workspace.editor_state_on') }}",
+    generate: "{{ t('workspace.generate') }}",
+    generateLoading: "{{ t('workspace.generate_loading') }}",
+    summaryEmpty: "{{ t('workspace.side_summary_empty') }}",
+    studyLoading: "{{ t('workspace.study_loading') }}",
+    studyModeTitle: "{{ t('workspace.study_mode_title') }}",
+    studyModeSubtitle: "{{ t('workspace.study_mode_subtitle') }}",
+    studyNoTerms: "{{ t('workspace.study_no_terms') }}",
+    studyNoFlashcards: "{{ t('workspace.study_no_flashcards') }}",
+    studyNoQuiz: "{{ t('workspace.study_no_quiz') }}",
 
-    toastNoTextCopy: "{{ t('demo.toast_no_text_copy') }}",
-    toastCopied: "{{ t('demo.toast_copied') }}",
-    toastCopyFailed: "{{ t('demo.toast_copy_failed') }}",
-    toastNoTextSave: "{{ t('demo.toast_no_text_save') }}",
-    toastSaved: "{{ t('demo.toast_saved') }}",
-    toastSaveFailed: "{{ t('demo.toast_save_failed') }}",
-    toastNoTextSummary: "{{ t('demo.toast_no_text_summary') }}",
-    toastSummaryDone: "{{ t('demo.toast_summary_done') }}",
-    toastSummaryFailed: "{{ t('demo.toast_summary_failed') }}",
-    toastServerUnavailable: "{{ t('demo.toast_server_unavailable') }}",
-    toastLangSelected: "{{ t('demo.toast_lang_selected') }}",
-    toastBrowserUnsupported: "{{ t('demo.toast_browser_unsupported') }}",
-    toastCleared: "{{ t('demo.toast_cleared') }}"
+    toastNoTextCopy: "{{ t('workspace.toast_no_text_copy') }}",
+    toastCopied: "{{ t('workspace.toast_copied') }}",
+    toastCopyFailed: "{{ t('workspace.toast_copy_failed') }}",
+    toastNoTextSave: "{{ t('workspace.toast_no_text_save') }}",
+    toastSaved: "{{ t('workspace.toast_saved') }}",
+    toastSaveFailed: "{{ t('workspace.toast_save_failed') }}",
+    toastNoTextSummary: "{{ t('workspace.toast_no_text_summary') }}",
+    toastSummaryDone: "{{ t('workspace.toast_summary_done') }}",
+    toastSummaryFailed: "{{ t('workspace.toast_summary_failed') }}",
+    toastServerUnavailable: "{{ t('workspace.toast_server_unavailable') }}",
+    toastLangSelected: "{{ t('workspace.toast_lang_selected') }}",
+    toastBrowserUnsupported: "{{ t('workspace.toast_browser_unsupported') }}",
+    toastCleared: "{{ t('workspace.toast_cleared') }}",
+    audioLoading: "{{ t('workspace.audio_loading') }}",
+    audioDone: "{{ t('workspace.audio_done') }}",
+    audioChooseFile: "{{ t('workspace.audio_choose_file') }}",
+    audioTranscribeFile: "{{ t('workspace.audio_transcribe_file') }}",
+    audioFallback: "{{ t('workspace.audio_fallback') }}",
+    speechError: "{{ t('workspace.speech_error') }}",
+    answerLabel: "{{ t('workspace.answer_label') }}",
+    explanationLabel: "{{ t('workspace.explanation_label') }}",
+    shortSummaryLabel: "{{ t('workspace.summary_short_label') }}",
+    detailedSummaryLabel: "{{ t('workspace.summary_detailed_label') }}",
+    examQuestionsLabel: "{{ t('workspace.summary_exam_label') }}",
+    actionItemsLabel: "{{ t('workspace.summary_actions_label') }}",
+    conclusionLabel: "{{ t('workspace.summary_conclusion_label') }}"
   };
 
   const startBtn = document.getElementById("startBtn");
@@ -740,6 +971,11 @@
   const clearBtn = document.getElementById("clearBtn");
   const summaryBtn = document.getElementById("summaryBtn");
   const studyBtn = document.getElementById("studyBtn");
+  const audioFile = document.getElementById("audioFile");
+  const audioFileName = document.getElementById("audioFileName");
+  const uploadAudioBtn = document.getElementById("uploadAudioBtn");
+  const accessUploadBtn = document.getElementById("accessUploadBtn");
+  const accessSaveBtn = document.getElementById("accessSaveBtn");
 
   const langSelect = document.getElementById("langSelect");
   const summaryTypeSelect = document.getElementById("summaryTypeSelect");
@@ -772,8 +1008,8 @@
   let currentMode = null;
 
   function toast(message, type = "info") {
-    if (window.VoiceFlowUI && window.VoiceFlowUI.toast) {
-      window.VoiceFlowUI.toast(message, type);
+    if (window.SmartLectureUI && window.SmartLectureUI.toast) {
+      window.SmartLectureUI.toast(message, type);
     }
   }
 
@@ -860,13 +1096,12 @@
     };
 
     recog.onerror = (event) => {
-      console.error(event);
       isRecording = false;
       startBtn.disabled = false;
       stopBtn.disabled = true;
       setStatus(TEXTS.error, false);
       stopTimer();
-      toast(`Speech error: ${event.error}`, "error");
+      toast(`${TEXTS.speechError}: ${event.error}`, "error");
     };
 
     recog.onresult = (event) => {
@@ -893,10 +1128,13 @@
     currentMode = null;
     packTitle.textContent = TEXTS.studyModeTitle;
     packSubtitle.textContent = TEXTS.studyModeSubtitle;
-    summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.summaryEmpty}</span>`;
-    termsList.innerHTML = "";
-    flashcardsList.innerHTML = "";
-    quizList.innerHTML = "";
+    const empty = document.createElement("span");
+    empty.className = "summary-empty";
+    empty.textContent = TEXTS.summaryEmpty;
+    summaryBox.replaceChildren(empty);
+    termsList.replaceChildren();
+    flashcardsList.replaceChildren();
+    quizList.replaceChildren();
   }
 
   function setActiveTab(tabId) {
@@ -907,15 +1145,6 @@
     studyPanels.forEach((panel) => {
       panel.classList.toggle("active", panel.id === tabId);
     });
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
   }
 
   function renderPack(data, mode) {
@@ -929,9 +1158,17 @@
 
     packTitle.textContent = title;
     packSubtitle.textContent = subtitle;
-    summaryBox.textContent = data?.structured || data?.summary || "";
+    const packBlocks = [
+      data?.short_summary ? `${TEXTS.shortSummaryLabel}:\n${data.short_summary}` : "",
+      data?.detailed_summary ? `\n${TEXTS.detailedSummaryLabel}:\n${data.detailed_summary}` : "",
+      "",
+      Array.isArray(data?.exam_questions) && data.exam_questions.length ? `\n${TEXTS.examQuestionsLabel}:\n${data.exam_questions.map((x, i) => `${i + 1}. ${x}`).join("\n")}` : "",
+      Array.isArray(data?.action_items) && data.action_items.length ? `\n${TEXTS.actionItemsLabel}:\n${data.action_items.map((x, i) => `${i + 1}. ${x}`).join("\n")}` : "",
+      data?.final_conclusion ? `\n${TEXTS.conclusionLabel}:\n${data.final_conclusion}` : ""
+    ].filter(Boolean);
+    summaryBox.textContent = packBlocks.join("\n") || data?.summary || "";
 
-    termsList.innerHTML = "";
+    termsList.replaceChildren();
     if (Array.isArray(data?.keywords) && data.keywords.length > 0) {
       data.keywords.forEach((term) => {
         const chip = document.createElement("span");
@@ -946,15 +1183,18 @@
       termsList.appendChild(empty);
     }
 
-    flashcardsList.innerHTML = "";
+    flashcardsList.replaceChildren();
     if (Array.isArray(data?.flashcards) && data.flashcards.length > 0) {
       data.flashcards.forEach((item, index) => {
         const card = document.createElement("div");
         card.className = "flashcard";
-        card.innerHTML = `
-          <div class="front">${index + 1}. ${escapeHtml(item.front || "")}</div>
-          <div class="back">${escapeHtml(item.back || "")}</div>
-        `;
+        const front = document.createElement("div");
+        front.className = "front";
+        front.textContent = `${index + 1}. ${item.front || ""}`;
+        const back = document.createElement("div");
+        back.className = "back";
+        back.textContent = item.back || "";
+        card.append(front, back);
         flashcardsList.appendChild(card);
       });
     } else {
@@ -964,16 +1204,28 @@
       flashcardsList.appendChild(empty);
     }
 
-    quizList.innerHTML = "";
+    quizList.replaceChildren();
     if (Array.isArray(data?.quiz) && data.quiz.length > 0) {
       data.quiz.forEach((item, index) => {
         const box = document.createElement("div");
         box.className = "quiz-item";
-        box.innerHTML = `
-          <div class="q">${index + 1}. ${escapeHtml(item.question || "")}</div>
-          <div class="a"><strong>Answer:</strong> ${escapeHtml(item.answer || "")}</div>
-          ${item.explanation ? `<div class="e"><strong>Explanation:</strong> ${escapeHtml(item.explanation)}</div>` : ""}
-        `;
+        const question = document.createElement("div");
+        question.className = "q";
+        question.textContent = `${index + 1}. ${item.question || ""}`;
+        const answer = document.createElement("div");
+        answer.className = "a";
+        const answerLabel = document.createElement("strong");
+        answerLabel.textContent = `${TEXTS.answerLabel}:`;
+        answer.append(answerLabel, document.createTextNode(` ${item.answer || ""}`));
+        box.append(question, answer);
+        if (item.explanation) {
+          const explanation = document.createElement("div");
+          explanation.className = "e";
+          const explanationLabel = document.createElement("strong");
+          explanationLabel.textContent = `${TEXTS.explanationLabel}:`;
+          explanation.append(explanationLabel, document.createTextNode(` ${item.explanation}`));
+          box.appendChild(explanation);
+        }
         quizList.appendChild(box);
       });
     } else {
@@ -1011,24 +1263,26 @@
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.ok !== false) {
+        const result = data.data || {};
         renderPack({
-          topic: data.topic || TEXTS.studyModeTitle,
-          summary: data.summary || "",
-          structured: data.structured || data.summary || "",
-          keywords: Array.isArray(data.keywords) ? data.keywords : [],
+          topic: result.topic || TEXTS.studyModeTitle,
+          short_summary: result.short_summary || result.summary || "",
+          detailed_summary: result.detailed_summary || "",
+          summary: result.summary || "",
+          structured: result.structured || result.summary || "",
+          keywords: Array.isArray(result.keywords) ? result.keywords : [],
           flashcards: [],
           quiz: []
         }, "summary");
 
         toast(TEXTS.toastSummaryDone, "success");
       } else {
-        summaryBox.innerHTML = `<span class="summary-empty">${data.error || TEXTS.toastSummaryFailed}</span>`;
+        summaryBox.textContent = data.error || TEXTS.toastSummaryFailed;
         toast(data.error || TEXTS.toastSummaryFailed, "error");
       }
     } catch (error) {
-      console.error(error);
-      summaryBox.innerHTML = `<span class="summary-empty">${TEXTS.toastServerUnavailable}</span>`;
+      summaryBox.textContent = TEXTS.toastServerUnavailable;
       toast(TEXTS.toastServerUnavailable, "error");
     } finally {
       summaryBtn.disabled = false;
@@ -1059,14 +1313,20 @@
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.ok !== false) {
+        const result = data.data || {};
         renderPack({
-          topic: data.topic || TEXTS.studyModeTitle,
-          summary: data.summary || "",
-          structured: data.structured || data.summary || "",
-          keywords: Array.isArray(data.keywords) ? data.keywords : [],
-          flashcards: Array.isArray(data.flashcards) ? data.flashcards : [],
-          quiz: Array.isArray(data.quiz) ? data.quiz : []
+          topic: result.topic || TEXTS.studyModeTitle,
+          short_summary: result.short_summary || result.summary || "",
+          detailed_summary: result.detailed_summary || "",
+          summary: result.summary || "",
+          structured: result.structured || result.summary || "",
+          keywords: Array.isArray(result.keywords) ? result.keywords : [],
+          flashcards: Array.isArray(result.flashcards) ? result.flashcards : [],
+          quiz: Array.isArray(result.quiz) ? result.quiz : [],
+          exam_questions: Array.isArray(result.exam_questions) ? result.exam_questions : [],
+          action_items: Array.isArray(result.action_items) ? result.action_items : [],
+          final_conclusion: result.final_conclusion || ""
         }, "study");
 
         toast(TEXTS.toastSummaryDone, "success");
@@ -1074,7 +1334,6 @@
         toast(data.error || TEXTS.toastSummaryFailed, "error");
       }
     } catch (error) {
-      console.error(error);
       toast(TEXTS.toastServerUnavailable, "error");
     } finally {
       summaryBtn.disabled = false;
@@ -1122,7 +1381,6 @@
       await navigator.clipboard.writeText(text);
       toast(TEXTS.toastCopied, "success");
     } catch (error) {
-      console.error(error);
       toast(TEXTS.toastCopyFailed, "error");
     }
   });
@@ -1136,7 +1394,7 @@
 
     const payload = currentPack
       ? {
-          summary: currentPack.structured || currentPack.summary || "",
+          summary: currentPack.detailed_summary || currentPack.short_summary || currentPack.summary || "",
           summary_type: currentMode === "study" ? "study" : (summaryTypeSelect.value || "lecture"),
           keywords: Array.isArray(currentPack.keywords) ? currentPack.keywords : []
         }
@@ -1152,26 +1410,90 @@
           text,
           language: langSelect.value,
           duration: seconds,
-          source: currentMode === "study" ? "study" : "demo",
+          title: text.slice(0, 80),
+          source: currentMode === "study" ? "study" : "speech",
           summary_data: payload
         })
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.ok !== false) {
         toast(TEXTS.toastSaved, "success");
       } else {
         toast(data.error || TEXTS.toastSaveFailed, "error");
       }
     } catch (error) {
-      console.error(error);
       toast(TEXTS.toastServerUnavailable, "error");
     }
   });
 
   summaryBtn.addEventListener("click", generateSummary);
   studyBtn.addEventListener("click", generateStudyMode);
+
+  audioFile?.addEventListener("change", () => {
+    const file = audioFile.files?.[0];
+    if (audioFileName) {
+      audioFileName.textContent = file?.name || TEXTS.audioChooseFile;
+    }
+  });
+
+  uploadAudioBtn?.addEventListener("click", async () => {
+    const file = audioFile?.files?.[0];
+    if (!file) {
+      toast(TEXTS.audioChooseFile, "warning");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("audio", file);
+    uploadAudioBtn.disabled = true;
+    uploadAudioBtn.textContent = TEXTS.audioLoading;
+
+    try {
+      const response = await fetch("/api/transcribe/audio", {
+        method: "POST",
+        body: formData
+      });
+      const data = await response.json();
+
+      if (response.ok && data.ok !== false) {
+        editor.value = [editor.value.trim(), data.data?.text || ""].filter(Boolean).join("\n\n");
+        finalTranscript = editor.value;
+        updateWordCount();
+        toast(TEXTS.audioDone, "success");
+      } else {
+        toast(data.error || TEXTS.audioFallback, "warning");
+      }
+    } catch (error) {
+      toast(TEXTS.toastServerUnavailable, "error");
+    } finally {
+      uploadAudioBtn.disabled = false;
+      uploadAudioBtn.textContent = TEXTS.audioTranscribeFile;
+    }
+  });
+
+  accessUploadBtn?.addEventListener("click", () => audioFile?.click());
+  accessSaveBtn?.addEventListener("click", () => saveBtn?.click());
+
+  document.addEventListener("dragover", (event) => {
+    if (event.dataTransfer?.types?.includes("Files")) {
+      event.preventDefault();
+      document.body.classList.add("dragging-audio");
+    }
+  });
+
+  document.addEventListener("dragleave", () => document.body.classList.remove("dragging-audio"));
+  document.addEventListener("drop", (event) => {
+    if (!event.dataTransfer?.files?.length || !audioFile) return;
+    event.preventDefault();
+    document.body.classList.remove("dragging-audio");
+    audioFile.files = event.dataTransfer.files;
+    if (audioFileName) {
+      audioFileName.textContent = audioFile.files?.[0]?.name || TEXTS.audioChooseFile;
+    }
+    toast(TEXTS.audioChooseFile, "info");
+  });
 
   editor.addEventListener("input", updateWordCount);
 

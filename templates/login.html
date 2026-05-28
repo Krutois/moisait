@@ -225,13 +225,14 @@
           <div class="form-group">
             <label>{{ t('login.username') }}</label>
             {% if form and form.username %}
-              {{ form.username(class="auth-input", placeholder=t('login.username_placeholder')) }}
+              {{ form.username(class="auth-input" ~ (" input-error" if form.username.errors else ""), placeholder=t('login.username_hint')) }}
+              {% if form.username.errors %}<div class="field-errors">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="text"
                 name="username"
                 class="auth-input"
-                placeholder="{{ t('login.username_placeholder') }}"
+                placeholder="{{ t('login.username_hint') }}"
                 required
               >
             {% endif %}
@@ -240,13 +241,14 @@
           <div class="form-group">
             <label>{{ t('login.password') }}</label>
             {% if form and form.password %}
-              {{ form.password(class="auth-input", placeholder=t('login.password_placeholder')) }}
+              {{ form.password(class="auth-input" ~ (" input-error" if form.password.errors else ""), placeholder=t('login.password_hint')) }}
+              {% if form.password.errors %}<div class="field-errors">{% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="password"
                 name="password"
                 class="auth-input"
-                placeholder="{{ t('login.password_placeholder') }}"
+                placeholder="{{ t('login.password_hint') }}"
                 required
               >
             {% endif %}

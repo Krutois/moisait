@@ -1,48 +1,45 @@
-# Виртуальное окружение
+# Virtual environments
+.git/
 .venv/
 venv/
 env/
 
-# Python
+# Python cache/build output
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 .Python
-*.so
-*.egg
 *.egg-info/
 dist/
 build/
 
-# Секреты и конфиги
+# Secrets and local config
 .env
 *.env
+!.env.example
 
-# Базы данных
+# Local databases and runtime files
+instance/
 *.db
 *.sqlite
 *.sqlite3
+*.log
+uploads/
+exports/
 
-# Миграции
-migrations/
-alembic.ini
-
-# IDE
+# Editors and OS files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# Логи
-*.log
-voice_assistant.log
-
-# Файлы ОС
 .DS_Store
 Thumbs.db
 
-# PWA (если генерируются динамически)
-sw.js
-manifest.json
+# Test/cache output
+.pytest_cache/
+.coverage
+htmlcov/
+SmartLecture_release.zip
+*.zip

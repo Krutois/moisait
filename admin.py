@@ -1,24 +1,41 @@
-from flask_admin import Admin
+from flask import redirect, request, url_for
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user
-from flask import redirect, url_for, flash
-from extensions import db
-from models import User, Transcription, Favorite, UserStats
 
-class AdminModelView(ModelView):
-    """Базовый класс для всех моделей в админ-панели с проверкой прав"""
+from extensions import db
+from models import ContactMessage, Favorite, Transcription, User, UserStats
+
+
+def _admin_login_redirect():
+    return redirect(url_for("auth.login", next=request.full_path))
+
+
+class SecureAdminIndexView(AdminIndexView):
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
 
     def inaccessible_callback(self, name, **kwargs):
-        flash('Доступ запрещён. Требуются права администратора.', 'danger')
-        return redirect(url_for('main.index'))
+        return _admin_login_redirect()
+
+
+class SecureModelView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return _admin_login_redirect()
+
 
 def init_admin(app):
-    """Инициализация админ-панели"""
-    admin = Admin(app, name='VoiceFlow Admin', template_mode='bootstrap4', url='/admin')
-    admin.add_view(AdminModelView(User, db.session))
-    admin.add_view(AdminModelView(Transcription, db.session))
-    admin.add_view(AdminModelView(Favorite, db.session))
-    admin.add_view(AdminModelView(UserStats, db.session))
+    admin = Admin(
+        app,
+        name="SmartLecture Admin",
+        index_view=SecureAdminIndexView(url="/admin"),
+    )
+    admin.add_view(SecureModelView(User, db))
+    admin.add_view(SecureModelView(Transcription, db))
+    admin.add_view(SecureModelView(Favorite, db))
+    admin.add_view(SecureModelView(UserStats, db))
+    admin.add_view(SecureModelView(ContactMessage, db))
     return admin

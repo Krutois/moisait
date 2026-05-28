@@ -290,7 +290,10 @@
 
         <div class="danger-row">
           <a href="{{ url_for('auth.settings') }}" class="btn btn-soft">{{ t('nav.settings') }}</a>
-          <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">{{ t('nav.sign_out') }}</a>
+          <form method="POST" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">{{ t('nav.sign_out') }}</button>
+          </form>
         </div>
       </div>
 
@@ -330,7 +333,7 @@
             <span class="action-index">01</span>
             <h3>{{ t('profile.card_1_title') }}</h3>
             <p>{{ t('profile.card_1_text') }}</p>
-            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('profile.card_1_btn') }}</a>
+            <a href="{{ url_for('main.workspace') }}" class="btn btn-primary">{{ t('profile.card_1_btn') }}</a>
           </div>
 
           <div class="action-card">
@@ -374,10 +377,11 @@
 
     if (!response.ok) return;
 
-    setText("quickTotal", data.total_records || 0);
-    setText("metricTotal", data.total_records || 0);
-    setText("metricFavorites", data.favorite_records || 0);
-    setText("metricWords", (data.total_words || 0).toLocaleString());
+    const stats = data.data || data;
+    setText("quickTotal", stats.total_records || 0);
+    setText("metricTotal", stats.total_records || 0);
+    setText("metricFavorites", stats.favorite_records || 0);
+    setText("metricWords", (stats.total_words || 0).toLocaleString());
   } catch (error) {
     console.error(error);
   }

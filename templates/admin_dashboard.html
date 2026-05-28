@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ t('admin.page_title') }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container admin-grid">
+    <div class="admin-card panel">
+      <span class="badge">{{ t('admin.badge') }}</span>
+      <h1>{{ t('admin.title') }}</h1>
+      <p>{{ t('admin.subtitle') }}</p>
+    </div>
+
+    <div class="admin-metrics">
+      <div class="admin-card panel"><strong>{{ dashboard.users_count }}</strong><span>{{ t('admin.users') }}</span></div>
+      <div class="admin-card panel"><strong>{{ dashboard.transcriptions_count }}</strong><span>{{ t('admin.transcriptions') }}</span></div>
+      <div class="admin-card panel"><strong>{{ dashboard.favorites_count }}</strong><span>{{ t('admin.favorites') }}</span></div>
+      <div class="admin-card panel"><strong>{{ dashboard.contact_messages_count }}</strong><span>{{ t('admin.contact_messages') }}</span></div>
+    </div>
+
+    <div class="admin-card panel">
+      <h2>{{ t('admin.activity') }}</h2>
+      <div class="admin-list">
+        {% for item in dashboard.activity_last_7_days %}
+          <div class="admin-row">{{ item.date }} - {{ item.count }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="admin-columns">
+      <div class="admin-card panel">
+        <h2>{{ t('admin.latest_users') }}</h2>
+        <div class="admin-list">
+          {% for user in dashboard.latest_users %}
+            <div class="admin-row">{{ user.username }}<br>{{ user.email }}</div>
+          {% else %}
+            <div class="admin-row">{{ t('admin.no_users') }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="admin-card panel">
+        <h2>{{ t('admin.latest_transcriptions') }}</h2>
+        <div class="admin-list">
+          {% for item in dashboard.latest_transcriptions %}
+            <div class="admin-row">{{ item.title }}<br>{{ item.word_count }} {{ t('admin.words') }}</div>
+          {% else %}
+            <div class="admin-row">{{ t('admin.no_transcriptions') }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="admin-card panel">
+        <h2>{{ t('admin.latest_contacts') }}</h2>
+        <div class="admin-list">
+          {% for message in dashboard.latest_contact_messages %}
+            <div class="admin-row">{{ message.topic }}<br>{{ message.email }} - {{ message.status }}</div>
+          {% else %}
+            <div class="admin-row">{{ t('admin.no_messages') }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

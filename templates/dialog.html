@@ -1,60 +1,156 @@
 {% extends "base.html" %}
-{% block title %}Диалоговый режим{% endblock %}
+{% block title %}{{ t('dialog.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dialog-layout {
+    display: grid;
+    grid-template-columns: 0.78fr 1.22fr;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .dialog-panel {
+    padding: 24px;
+    border-radius: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+
+  .dialog-panel h1 {
+    margin: 12px 0 10px;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.04;
+  }
+
+  .dialog-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  .dialog-controls .btn {
+    width: 100%;
+    min-height: 54px;
+  }
+
+  .speaker-status {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .speaker-pill-large {
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.2);
+    color: #bbf7d0;
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .dialog-feed {
+    min-height: 500px;
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  .dialog-empty {
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 24px;
+  }
+
+  .dialog-line {
+    display: grid;
+    gap: 8px;
+  }
+
+  .dialog-line.speaker-b {
+    justify-items: end;
+  }
+
+  .dialog-speaker-label {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: #dbe7ff;
+    font-weight: 800;
+  }
+
+  .dialog-bubble {
+    max-width: min(760px, 92%);
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(124,58,237,0.16);
+    border: 1px solid rgba(124,58,237,0.22);
+    color: #ffffff;
+    font-size: clamp(20px, 2.4vw, 30px);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .speaker-b .dialog-bubble {
+    background: rgba(34,211,238,0.12);
+    border-color: rgba(34,211,238,0.22);
+  }
+
+  @media (max-width: 980px) {
+    .dialog-layout,
+    .dialog-controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <section class="section">
-  <div class="container">
+  <div class="container dialog-layout">
+    <div class="dialog-panel">
+      <span class="badge">{{ t('dialog.badge') }}</span>
+      <h1>{{ t('dialog.title') }}</h1>
+      <p class="muted">{{ t('dialog.subtitle') }}</p>
 
-    <div class="page-head">
-      <div>
-        <span class="badge">Conversation mode</span>
-        <h1>Диалоговый режим</h1>
-        <p>Режим для интервью, разговоров и встреч с разделением реплик по спикерам.</p>
+      <div class="dialog-controls" role="toolbar" aria-label="{{ t('dialog.controls') }}">
+        <button id="dialogStartBtn" class="btn btn-primary" type="button" aria-label="{{ t('dialog.start') }}">{{ t('dialog.start') }}</button>
+        <button id="dialogStopBtn" class="btn btn-soft" type="button" disabled aria-label="{{ t('dialog.stop') }}">{{ t('dialog.stop') }}</button>
+        <button id="dialogSwitchBtn" class="btn btn-primary" type="button" aria-label="{{ t('dialog.switch') }}">{{ t('dialog.switch') }}</button>
+        <button id="dialogCopyBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.copy') }}">{{ t('dialog.copy') }}</button>
+        <button id="dialogSaveBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.save') }}">{{ t('dialog.save') }}</button>
+        <button id="dialogClearBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.clear') }}">{{ t('dialog.clear') }}</button>
+      </div>
+
+      <label class="muted" for="dialogLangSelect">{{ t('nav.language') }}</label>
+      <select id="dialogLangSelect" class="filter-select" style="margin-top:8px;">
+        <option value="ru-RU">{{ t('workspace.lang_ru') }}</option>
+        <option value="kk-KZ">{{ t('workspace.lang_kk') }}</option>
+        <option value="en-US">{{ t('workspace.lang_en') }}</option>
+      </select>
+
+      <div class="speaker-status" aria-live="polite">
+        <div class="speaker-pill-large" id="speakerPill">{{ t('dialog.speaker') }} A</div>
+        <div class="meta-pill" id="dialogStatus">{{ t('dialog.idle') }}</div>
       </div>
     </div>
 
-    <div class="card-grid demo-layout">
-      <div class="panel demo-main">
-        <div class="demo-toolbar">
-          <button id="dialogStartBtn" class="btn btn-primary" type="button">Начать</button>
-          <button id="dialogStopBtn" class="btn btn-soft" type="button" disabled>Стоп</button>
-          <button id="dialogSwitchBtn" class="btn btn-soft" type="button">Сменить спикера</button>
-          <button id="dialogCopyBtn" class="btn btn-soft" type="button">Копировать</button>
-          <button id="dialogClearBtn" class="btn btn-soft" type="button">Очистить</button>
-          <button id="dialogSaveBtn" class="btn btn-soft" type="button">Сохранить</button>
-        </div>
-
-        <div class="demo-toolbar second">
-          <select id="dialogLangSelect" class="input">
-            <option value="ru-RU">Русский</option>
-            <option value="kk-KZ">Қазақша</option>
-            <option value="en-US">English</option>
-          </select>
-
-          <div class="speaker-pill" id="speakerPill">Спикер A</div>
-          <div class="status-pill" id="dialogStatus">Ожидание</div>
-        </div>
-
-        <div id="dialogOutput" class="dialog-output">
-          <div class="dialog-placeholder">Начни запись — здесь появятся реплики диалога...</div>
-        </div>
-      </div>
-
-      <div class="panel side-panel">
-        <h3>Для чего нужен режим</h3>
-        <ul class="clean-list">
-          <li>Интервью и подкасты</li>
-          <li>Разговор двух людей</li>
-          <li>Разделение речи по спикерам вручную</li>
-          <li>Сохранение результата в историю</li>
-        </ul>
-
-        <div class="side-note">
-          Если говорящий меняется — нажми “Сменить спикера”, и следующая реплика пойдет уже от другого участника.
-        </div>
+    <div class="dialog-panel">
+      <div id="dialogOutput" class="dialog-feed" aria-live="polite">
+        <div class="dialog-empty">{{ t('dialog.empty') }}</div>
       </div>
     </div>
-
   </div>
 </section>
 {% endblock %}
@@ -62,6 +158,21 @@
 {% block extra_js %}
 <script>
 (() => {
+  const TEXTS = {
+    speaker: "{{ t('dialog.speaker') }}",
+    empty: "{{ t('dialog.empty') }}",
+    unsupported: "{{ t('dialog.unsupported') }}",
+    error: "{{ t('workspace.status_error') }}",
+    recording: "{{ t('dialog.recording') }}",
+    idle: "{{ t('dialog.idle') }}",
+    cleared: "{{ t('dialog.cleared') }}",
+    copied: "{{ t('dialog.copied') }}",
+    noCopy: "{{ t('dialog.no_copy') }}",
+    noSave: "{{ t('dialog.no_save') }}",
+    saved: "{{ t('dialog.saved') }}",
+    saveFailed: "{{ t('dialog.save_failed') }}",
+    sessionTitle: "{{ t('dialog.session_title') }}"
+  };
   const startBtn = document.getElementById("dialogStartBtn");
   const stopBtn = document.getElementById("dialogStopBtn");
   const switchBtn = document.getElementById("dialogSwitchBtn");
@@ -69,246 +180,92 @@
   const clearBtn = document.getElementById("dialogClearBtn");
   const saveBtn = document.getElementById("dialogSaveBtn");
   const langSelect = document.getElementById("dialogLangSelect");
-  const status = document.getElementById("dialogStatus");
   const speakerPill = document.getElementById("speakerPill");
+  const status = document.getElementById("dialogStatus");
   const output = document.getElementById("dialogOutput");
-
   let recognition = null;
-  let isRecording = false;
   let currentSpeaker = "A";
-  let finalTranscript = "";
-  let currentInterim = "";
-  let dialogLines = [];
+  let lines = [];
+  let isRecording = false;
 
-  function setStatus(text) {
-    status.textContent = text;
-  }
-
-  function setSpeakerLabel() {
-    speakerPill.textContent = `Спикер ${currentSpeaker}`;
-  }
-
-  function renderDialog() {
-    output.innerHTML = "";
-
-    if (dialogLines.length === 0 && !currentInterim.trim()) {
-      output.innerHTML = '<div class="dialog-placeholder">Начни запись — здесь появятся реплики диалога...</div>';
+  function setStatus(text) { status.textContent = text; }
+  function render() {
+    output.replaceChildren();
+    if (!lines.length) {
+      const empty = document.createElement("div");
+      empty.className = "dialog-empty";
+      empty.textContent = TEXTS.empty;
+      output.appendChild(empty);
       return;
     }
-
-    dialogLines.forEach(line => {
-      const item = document.createElement("div");
-      item.className = `dialog-line speaker-${line.speaker.toLowerCase()}`;
-
-      item.innerHTML = `
-        <div class="dialog-speaker">Спикер ${line.speaker}</div>
-        <div class="dialog-bubble">${escapeHtml(line.text)}</div>
-      `;
-
-      output.appendChild(item);
+    lines.forEach((line) => {
+      const row = document.createElement("div");
+      row.className = `dialog-line speaker-${line.speaker.toLowerCase()}`;
+      const label = document.createElement("span");
+      label.className = "dialog-speaker-label";
+      label.textContent = `${TEXTS.speaker} ${line.speaker}`;
+      const bubble = document.createElement("div");
+      bubble.className = "dialog-bubble";
+      bubble.textContent = line.text;
+      row.append(label, bubble);
+      output.appendChild(row);
     });
-
-    if (currentInterim.trim()) {
-      const live = document.createElement("div");
-      live.className = `dialog-line speaker-${currentSpeaker.toLowerCase()} live`;
-
-      live.innerHTML = `
-        <div class="dialog-speaker">Спикер ${currentSpeaker}</div>
-        <div class="dialog-bubble">${escapeHtml(currentInterim)}</div>
-      `;
-
-      output.appendChild(live);
-    }
   }
-
-  function escapeHtml(text) {
-    return text
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function buildExportText() {
-    return dialogLines
-      .map(line => `Спикер ${line.speaker}: ${line.text}`)
-      .join("\n");
-  }
-
-  function pushFinalLine() {
-    const clean = finalTranscript.trim();
-    if (!clean) return;
-
-    dialogLines.push({
-      speaker: currentSpeaker,
-      text: clean
-    });
-
-    finalTranscript = "";
-    currentInterim = "";
-    renderDialog();
-  }
-
-  function initRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
+  function textOutput() { return lines.map((line) => `${TEXTS.speaker} ${line.speaker}: ${line.text}`).join("\n"); }
+  function SpeechRecognitionCtor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+  function setup() {
+    const SpeechRecognition = SpeechRecognitionCtor();
     if (!SpeechRecognition) {
-      setStatus("Браузер не поддерживает speech recognition");
+      setStatus(TEXTS.unsupported);
       startBtn.disabled = true;
-      stopBtn.disabled = true;
       return null;
     }
-
-    const recog = new SpeechRecognition();
-    recog.continuous = true;
-    recog.interimResults = true;
-    recog.lang = langSelect.value;
-
-    recog.onstart = () => {
-      isRecording = true;
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      setStatus("Идет запись...");
-    };
-
-    recog.onend = () => {
-      isRecording = false;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-
-      if (finalTranscript.trim()) {
-        pushFinalLine();
-      }
-
-      setStatus("Ожидание");
-    };
-
-    recog.onerror = (event) => {
-      console.error(event);
-      isRecording = false;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      setStatus(`Ошибка: ${event.error}`);
-    };
-
-    recog.onresult = (event) => {
-      let newFinal = "";
-      let interim = "";
-
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = langSelect.value;
+    rec.onstart = () => { isRecording = true; startBtn.disabled = true; stopBtn.disabled = false; setStatus(TEXTS.recording); };
+    rec.onend = () => { isRecording = false; startBtn.disabled = false; stopBtn.disabled = true; setStatus(TEXTS.idle); };
+    rec.onerror = (event) => setStatus(`${TEXTS.error}: ${event.error}`);
+    rec.onresult = (event) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          newFinal += transcript + " ";
-        } else {
-          interim += transcript;
-        }
+        const text = event.results[i][0].transcript.trim();
+        if (text) lines.push({ speaker: currentSpeaker, text });
       }
-
-      if (newFinal.trim()) {
-        finalTranscript += newFinal;
-      }
-
-      currentInterim = interim;
-      renderDialog();
+      render();
     };
-
-    return recog;
+    return rec;
   }
 
   startBtn.addEventListener("click", () => {
-    if (!recognition) {
-      recognition = initRecognition();
-    }
-    if (!recognition) return;
-
+    recognition = recognition || setup();
+    if (!recognition || isRecording) return;
     recognition.lang = langSelect.value;
     recognition.start();
   });
-
-  stopBtn.addEventListener("click", () => {
-    if (recognition && isRecording) {
-      recognition.stop();
-    }
-  });
-
+  stopBtn.addEventListener("click", () => recognition?.stop());
   switchBtn.addEventListener("click", () => {
-    if (finalTranscript.trim()) {
-      pushFinalLine();
-    }
-
     currentSpeaker = currentSpeaker === "A" ? "B" : "A";
-    setSpeakerLabel();
-    setStatus(`Активен: Спикер ${currentSpeaker}`);
+    speakerPill.textContent = `${TEXTS.speaker} ${currentSpeaker}`;
+    setStatus(`${TEXTS.speaker} ${currentSpeaker}`);
   });
-
-  clearBtn.addEventListener("click", () => {
-    dialogLines = [];
-    finalTranscript = "";
-    currentInterim = "";
-    renderDialog();
-    setStatus("Очищено");
-  });
-
+  clearBtn.addEventListener("click", () => { lines = []; render(); setStatus(TEXTS.cleared); });
   copyBtn.addEventListener("click", async () => {
-    const text = buildExportText().trim();
-
-    if (!text) {
-      setStatus("Нет текста для копирования");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(text);
-      window.VoiceFlowUI?.toast?.("Диалог скопирован", "success");
-      setStatus("Скопировано");
-    } catch (error) {
-      console.error(error);
-      setStatus("Ошибка копирования");
-    }
+    if (!lines.length) { setStatus(TEXTS.noCopy); return; }
+    await navigator.clipboard.writeText(textOutput());
+    setStatus(TEXTS.copied);
   });
-
   saveBtn.addEventListener("click", async () => {
-    const text = buildExportText().trim();
-
-    if (!text) {
-      setStatus("Нет текста для сохранения");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text: text,
-          source: "dialog",
-          language: langSelect.value
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        window.VoiceFlowUI?.toast?.("Диалог сохранен", "success");
-        setStatus("Сохранено в историю");
-      } else {
-        setStatus(data.error || "Ошибка сохранения");
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus("Сервер недоступен");
-    }
+    const text = textOutput();
+    if (!text) { setStatus(TEXTS.noSave); return; }
+    const response = await fetch("/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: langSelect.value, source: "dialog", title: TEXTS.sessionTitle })
+    });
+    const data = await response.json();
+    setStatus(response.ok && data.ok !== false ? TEXTS.saved : (data.error || TEXTS.saveFailed));
   });
-
-  langSelect.addEventListener("change", () => {
-    setStatus(`Язык: ${langSelect.options[langSelect.selectedIndex].text}`);
-  });
-
-  setSpeakerLabel();
-  renderDialog();
 })();
 </script>
 {% endblock %}

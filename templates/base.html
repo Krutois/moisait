@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="{{ current_lang or 'kk' }}">
+<html lang="{{ current_lang or 'en' }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="description" content="{{ t('meta.description') }}">
 
-  <title>{% block title %}VoiceFlow{% endblock %}</title>
+  <title>{% block title %}SmartLecture{% endblock %}</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
   <style>
     :root {
@@ -18,13 +23,14 @@
       --line: rgba(255, 255, 255, 0.08);
       --text: #f8fafc;
       --muted: #94a3b8;
-      --primary: #7c3aed;
-      --primary-2: #22d3ee;
+      --primary: #2563eb;
+      --primary-2: #14b8a6;
       --danger: #ef4444;
       --success: #22c55e;
       --warning: #f59e0b;
-      --container: 1180px;
+      --container: 1280px;
       --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      --control-height: 46px;
     }
 
     * {
@@ -40,9 +46,7 @@
       font-family: "Inter", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(124, 58, 237, 0.22), transparent 28%),
-        radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 22%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+        linear-gradient(180deg, var(--bg) 0%, #08111f 48%, var(--bg-2) 100%);
       min-height: 100vh;
       overflow-x: hidden;
     }
@@ -79,12 +83,7 @@
     }
 
     .bg-orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(90px);
-      pointer-events: none;
-      z-index: -2;
-      opacity: 0.85;
+      display: none;
     }
 
     .bg-orb.one {
@@ -150,7 +149,7 @@
     }
 
     .nav {
-      min-height: 78px;
+      min-height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -165,6 +164,8 @@
       font-weight: 800;
       letter-spacing: -0.03em;
       z-index: 102;
+      min-width: 150px;
+      flex: 0 0 auto;
     }
 
     .brand-mark {
@@ -187,48 +188,88 @@
     .nav-menu {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
       gap: 18px;
       flex: 1;
+      min-width: 0;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 22px;
-      flex-wrap: wrap;
+      gap: 4px;
+      flex-wrap: nowrap;
+      min-width: 0;
     }
 
     .nav-links a {
       color: var(--muted);
-      font-weight: 500;
+      font-weight: 650;
+      font-size: 13px;
+      padding: 10px 9px;
+      border-radius: 12px;
       transition: .2s ease;
+      white-space: nowrap;
+      border: 1px solid transparent;
     }
 
-    .nav-links a:hover {
+    .nav-links a:hover,
+    .nav-links a.active {
       color: white;
+      background: rgba(255,255,255,0.055);
+    }
+
+    .nav-links a.nav-live {
+      color: #ffffff;
+      background: rgba(34, 197, 94, 0.14);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .nav-links a.nav-live.active {
+      background: linear-gradient(135deg, rgba(34,197,94,0.24), rgba(34,211,238,0.16));
+      border-color: rgba(34, 197, 94, 0.42);
+      box-shadow: 0 10px 24px rgba(34, 197, 94, 0.14);
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
     }
 
     .lang-switch {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      gap: 3px;
+      min-height: var(--control-height);
+      padding: 5px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.09);
+      white-space: nowrap;
+    }
+
+    .segmented-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      min-height: var(--control-height);
+      padding: 5px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.09);
     }
 
     .lang-btn {
-      padding: 8px 10px;
-      border-radius: 10px;
+      min-width: 74px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-size: 12px;
       font-weight: 700;
       color: var(--muted);
@@ -244,6 +285,96 @@
     .lang-btn.active {
       color: white;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 18px rgba(34, 211, 238, 0.18);
+    }
+
+    .account-menu {
+      position: relative;
+    }
+
+    .account-menu summary {
+      list-style: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 0 14px;
+      min-width: var(--control-height);
+      min-height: var(--control-height);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      color: white;
+      background: rgba(255,255,255,0.045);
+      font-weight: 800;
+      transition: .2s ease;
+    }
+
+    .account-menu summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .account-menu summary:hover,
+    .account-menu[open] summary {
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+
+    .account-initial {
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      font-size: 12px;
+      color: white;
+    }
+
+    .account-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 230px;
+      padding: 8px;
+      border-radius: 18px;
+      background: #0b1020;
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 20px 54px rgba(0,0,0,0.38);
+      display: grid;
+      gap: 4px;
+      z-index: 110;
+    }
+
+    .account-dropdown a,
+    .account-dropdown button {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 12px;
+      background: transparent;
+      color: #dbe7ff;
+      text-align: left;
+      cursor: pointer;
+      font-weight: 650;
+      font-size: 14px;
+    }
+
+    .account-dropdown a:hover,
+    .account-dropdown button:hover {
+      color: white;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .account-dropdown form {
+      margin: 0;
+    }
+
+    .dropdown-separator {
+      height: 1px;
+      margin: 5px 6px;
+      background: rgba(255,255,255,0.08);
     }
 
     .mobile-menu-btn {
@@ -285,7 +416,8 @@
     .btn {
       border: 1px solid transparent;
       border-radius: 14px;
-      padding: 12px 18px;
+      min-height: var(--control-height);
+      padding: 0 18px;
       font-weight: 600;
       cursor: pointer;
       transition: .22s ease;
@@ -294,10 +426,65 @@
       justify-content: center;
       gap: 8px;
       white-space: nowrap;
+      line-height: 1;
     }
 
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       transform: translateY(-1px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    .btn:focus-visible,
+    .lang-btn:focus-visible,
+    .mobile-menu-btn:focus-visible,
+    .account-menu summary:focus-visible {
+      outline: 0;
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.18);
+      border-color: rgba(124, 58, 237, 0.5);
+    }
+
+    body.access-high-contrast {
+      --bg: #000000;
+      --bg-2: #050505;
+      --panel: rgba(255, 255, 255, 0.1);
+      --line: rgba(255, 255, 255, 0.26);
+      --muted: #d7dee9;
+      background: #000000;
+    }
+
+    body.access-light {
+      --bg: #f8fafc;
+      --bg-2: #e2e8f0;
+      --text: #0f172a;
+      --muted: #334155;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    body.access-text-large { font-size: 18px; }
+    body.access-text-xl { font-size: 20px; }
+
+    body.access-reduce-motion *,
+    body.access-reduce-motion *::before,
+    body.access-reduce-motion *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+      transform: none;
     }
 
     .btn-primary {
@@ -316,10 +503,212 @@
       background: rgba(255,255,255,0.08);
     }
 
+    .btn-soft.active {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.28);
+      color: #fde68a;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.08);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .btn-muted {
+      background: rgba(255,255,255,0.025);
+      border-color: rgba(255,255,255,0.07);
+      color: #cbd5e1;
+    }
+
+    .btn-muted:hover {
+      background: rgba(255,255,255,0.06);
+      color: white;
+    }
+
     .btn-danger {
       background: rgba(239, 68, 68, 0.12);
       border-color: rgba(239, 68, 68, 0.18);
       color: #fecaca;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: rgba(255,255,255,0.16);
+      color: #eef4ff;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.26);
+    }
+
+    .btn-icon {
+      width: var(--control-height);
+      padding: 0;
+      flex: 0 0 var(--control-height);
+    }
+
+    .btn-group,
+    .toolbar,
+    .upload-row {
+      gap: 12px;
+    }
+
+    .toolbar,
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .card,
+    .panel {
+      border-radius: 22px;
+      background: rgba(255,255,255,0.052);
+      border: 1px solid rgba(255,255,255,0.075);
+      box-shadow: 0 16px 44px rgba(0,0,0,0.22);
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card-body {
+      display: grid;
+      gap: 14px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 34px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.035);
+      border: 1px dashed rgba(255,255,255,0.16);
+      color: var(--muted);
+    }
+
+    .empty-state h3 {
+      margin: 0 0 10px;
+      color: #ffffff;
+    }
+
+    .input,
+    .auth-input,
+    .settings-input,
+    textarea,
+    select {
+      border: 1px solid rgba(255,255,255,0.10);
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .input:focus,
+    .auth-input:focus,
+    .settings-input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(34,211,238,0.58);
+      box-shadow: 0 0 0 4px rgba(34,211,238,0.13);
+      outline: 0;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #dbe7ff;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .status-badge.success {
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.13);
+      border-color: rgba(34,197,94,0.22);
+    }
+
+    .status-badge.danger {
+      color: #fecaca;
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.2);
+    }
+
+    .status-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #dbe7ff;
+    }
+
+    .recording-pulse {
+      position: relative;
+    }
+
+    .recording-pulse::after {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: inherit;
+      border: 1px solid rgba(34,197,94,0.28);
+      animation: smartPulse 1.6s ease-out infinite;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.22);
+      border-top-color: #ffffff;
+      animation: smartSpin .75s linear infinite;
+    }
+
+    .is-loading {
+      position: relative;
+      pointer-events: none;
+    }
+
+    .is-loading::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.24);
+      border-top-color: #ffffff;
+      animation: smartSpin .75s linear infinite;
+    }
+
+    @keyframes smartPulse {
+      from { transform: scale(0.98); opacity: 0.75; }
+      to { transform: scale(1.08); opacity: 0; }
+    }
+
+    @keyframes smartSpin {
+      to { transform: rotate(360deg); }
     }
 
     .full {
@@ -467,13 +856,18 @@
       color: #bfdbfe;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1320px) {
       .nav {
-        gap: 14px;
+        gap: 12px;
       }
 
       .nav-links {
-        gap: 14px;
+        gap: 4px;
+      }
+
+      .nav-links a {
+        padding-inline: 7px;
+        font-size: 12px;
       }
 
       .nav-actions {
@@ -481,11 +875,15 @@
       }
 
       .btn {
-        padding: 11px 14px;
+        padding-inline: 13px;
+      }
+
+      .account-label {
+        display: none;
       }
     }
 
-    @media (max-width: 860px) {
+    @media (max-width: 1180px) {
       .site-header {
         background: rgba(8, 11, 24, 0.94);
       }
@@ -571,18 +969,41 @@
 
       .lang-switch {
         width: 100%;
-        justify-content: space-between;
+        justify-content: stretch;
       }
 
       .lang-btn {
         flex: 1;
-        text-align: center;
-        padding: 11px 10px;
+        min-width: 0;
+        height: 40px;
+        padding: 0 10px;
       }
 
       .nav-actions .btn {
         width: 100%;
         min-height: 46px;
+      }
+
+      .account-menu {
+        width: 100%;
+      }
+
+      .account-menu summary {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 12px 14px;
+      }
+
+      .account-label {
+        display: inline;
+      }
+
+      .account-dropdown {
+        position: static;
+        width: 100%;
+        margin-top: 8px;
+        box-shadow: none;
+        background: rgba(255,255,255,0.035);
       }
 
       .page-main {
@@ -595,6 +1016,15 @@
 
       .footer-grid {
         grid-template-columns: 1fr;
+      }
+
+      .dashboard-grid,
+      .card-header {
+        grid-template-columns: 1fr;
+      }
+
+      .card-header {
+        display: grid;
       }
     }
 
@@ -630,11 +1060,11 @@
   <header class="site-header">
     <div class="container nav">
       <a href="{{ url_for('main.index') }}" class="brand">
-        <span class="brand-mark">V</span>
-        <span class="brand-text">VoiceFlow</span>
+        <span class="brand-mark">S</span>
+        <span class="brand-text">SmartLecture</span>
       </a>
 
-      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open menu">
+      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="{{ t('nav.open_menu') }}">
         <span></span>
         <span></span>
         <span></span>
@@ -642,28 +1072,45 @@
 
       <div class="nav-menu" id="navMenu">
         <nav class="nav-links">
-          <a href="{{ url_for('main.index') }}">{{ t('nav.home') }}</a>
-          <a href="{{ url_for('main.about') }}">{{ t('nav.about') }}</a>
-          <a href="{{ url_for('main.contact') }}">{{ t('nav.contact') }}</a>
-
+          <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">{{ t('nav.home') }}</a>
           {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.demo') }}">{{ t('nav.workspace') }}</a>
-            <a href="{{ url_for('main.history') }}">{{ t('nav.history') }}</a>
-            <a href="{{ url_for('main.stats') }}">{{ t('nav.analytics') }}</a>
-            <a href="{{ url_for('main.profile') }}">{{ t('nav.profile') }}</a>
+            <a href="{{ url_for('main.lecture') }}" class="nav-live {% if request.endpoint == 'main.lecture' %}active{% endif %}">{{ t('nav.lecture_mode') }}</a>
+            <a href="{{ url_for('main.subtitles') }}" class="nav-live {% if request.endpoint == 'main.subtitles' %}active{% endif %}">{{ t('nav.live_subtitles') }}</a>
+            <a href="{{ url_for('main.workspace') }}" class="{% if request.endpoint == 'main.workspace' %}active{% endif %}">{{ t('nav.workspace') }}</a>
+            <a href="{{ url_for('main.history') }}" class="{% if request.endpoint == 'main.history' %}active{% endif %}">{{ t('nav.history') }}</a>
+            <a href="{{ url_for('main.favorites') }}" class="{% if request.endpoint == 'main.favorites' %}active{% endif %}">{{ t('nav.favorites') }}</a>
           {% endif %}
+          <a href="{{ url_for('main.about') }}" class="{% if request.endpoint == 'main.about' %}active{% endif %}">{{ t('nav.about') }}</a>
+          <a href="{{ url_for('main.contact') }}" class="{% if request.endpoint == 'main.contact' %}active{% endif %}">{{ t('nav.contact') }}</a>
         </nav>
 
         <div class="nav-actions">
-          <div class="lang-switch">
-            <a href="{{ url_for('main.set_language', lang='kk') }}" class="lang-btn {% if current_lang == 'kk' %}active{% endif %}">ҚАЗ</a>
-            <a href="{{ url_for('main.set_language', lang='ru') }}" class="lang-btn {% if current_lang == 'ru' %}active{% endif %}">РУС</a>
-            <a href="{{ url_for('main.set_language', lang='en') }}" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">ENG</a>
+          <div class="lang-switch segmented-control" aria-label="{{ t('nav.language') }}">
+            {% for lang in supported_langs %}
+              <a class="lang-btn {% if current_lang == lang %}active{% endif %}" href="{{ url_for('main.set_language', lang=lang) }}">{{ t('lang.' ~ lang) }}</a>
+            {% endfor %}
           </div>
-
           {% if current_user.is_authenticated %}
-            <a class="btn btn-soft" href="{{ url_for('main.demo') }}">{{ t('nav.open_workspace') }}</a>
-            <a class="btn btn-primary" href="{{ url_for('auth.logout') }}">{{ t('nav.sign_out') }}</a>
+            <details class="account-menu">
+              <summary aria-label="{{ t('nav.account') }}">
+                <span class="account-initial">{{ (current_user.username or current_user.email or 'V')[0]|upper }}</span>
+                <span class="account-label">{{ t('nav.account') }}</span>
+              </summary>
+              <div class="account-dropdown">
+                <a href="{{ url_for('main.profile') }}">{{ t('nav.profile') }}</a>
+                <a href="{{ url_for('auth.settings') }}">{{ t('nav.settings') }}</a>
+                {% if current_user.is_admin %}
+                  <div class="dropdown-separator"></div>
+                  <a href="{{ url_for('main.admin_dashboard') }}">{{ t('nav.admin_dashboard') }}</a>
+                  <a href="/admin">{{ t('nav.admin') }}</a>
+                {% endif %}
+                <div class="dropdown-separator"></div>
+                <form method="POST" action="{{ url_for('auth.logout') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit">{{ t('nav.sign_out') }}</button>
+                </form>
+              </div>
+            </details>
           {% else %}
             <a class="btn btn-soft" href="{{ url_for('auth.login') }}">{{ t('nav.sign_in') }}</a>
             <a class="btn btn-primary" href="{{ url_for('auth.register') }}">{{ t('nav.create_account') }}</a>
@@ -691,8 +1138,8 @@
     <div class="container footer-grid">
       <div>
         <div class="footer-brand">
-          <span class="brand-mark">V</span>
-          <span class="brand-text">VoiceFlow</span>
+          <span class="brand-mark">S</span>
+          <span class="brand-text">SmartLecture</span>
         </div>
         <p class="footer-text">{{ t('footer.text') }}</p>
       </div>
@@ -701,15 +1148,18 @@
         <h4>{{ t('footer.navigation') }}</h4>
         <a href="{{ url_for('main.index') }}">{{ t('nav.home') }}</a>
         <a href="{{ url_for('main.about') }}">{{ t('nav.about') }}</a>
+        <a href="{{ url_for('main.accessibility') }}">{{ t('nav.accessibility') }}</a>
         <a href="{{ url_for('main.contact') }}">{{ t('nav.contact') }}</a>
       </div>
 
       <div class="footer-col">
         <h4>{{ t('footer.workspace') }}</h4>
         {% if current_user.is_authenticated %}
-          <a href="{{ url_for('main.demo') }}">{{ t('nav.workspace') }}</a>
+          <a href="{{ url_for('main.subtitles') }}">{{ t('nav.live_subtitles') }}</a>
+          <a href="{{ url_for('main.lecture') }}">{{ t('nav.lecture_mode') }}</a>
+          <a href="{{ url_for('main.workspace') }}">{{ t('nav.workspace') }}</a>
           <a href="{{ url_for('main.history') }}">{{ t('nav.history') }}</a>
-          <a href="{{ url_for('main.stats') }}">{{ t('nav.analytics') }}</a>
+          <a href="{{ url_for('main.favorites') }}">{{ t('nav.favorites') }}</a>
           <a href="{{ url_for('auth.settings') }}">{{ t('nav.settings') }}</a>
         {% else %}
           <a href="{{ url_for('auth.login') }}">{{ t('nav.sign_in') }}</a>
@@ -724,114 +1174,19 @@
   </footer>
 
   <script>
-    (() => {
-      function ready(fn) {
-        if (document.readyState !== "loading") {
-          fn();
-        } else {
-          document.addEventListener("DOMContentLoaded", fn);
-        }
-      }
-
-      function createToastContainer() {
-        let container = document.querySelector(".toast-container");
-        if (!container) {
-          container = document.createElement("div");
-          container.className = "toast-container";
-          document.body.appendChild(container);
-        }
-        return container;
-      }
-
-      function showToast(message, type = "info", duration = 2600) {
-        const container = createToastContainer();
-        const toast = document.createElement("div");
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        container.appendChild(toast);
-
-        requestAnimationFrame(() => {
-          toast.classList.add("show");
-        });
-
-        setTimeout(() => {
-          toast.classList.remove("show");
-          setTimeout(() => toast.remove(), 260);
-        }, duration);
-      }
-
-      function autoHideFlashes() {
-        const flashes = document.querySelectorAll(".flash");
-        flashes.forEach((flash, index) => {
-          setTimeout(() => {
-            flash.style.opacity = "0";
-            flash.style.transform = "translateY(-6px)";
-            setTimeout(() => flash.remove(), 250);
-          }, 3200 + index * 250);
-        });
-      }
-
-      function setupConfirmActions() {
-        const forms = document.querySelectorAll("[data-confirm]");
-        forms.forEach((form) => {
-          form.addEventListener("submit", (event) => {
-            const message = form.dataset.confirm || "Are you sure?";
-            if (!window.confirm(message)) {
-              event.preventDefault();
-            }
-          });
-        });
-      }
-
-      function setupMobileMenu() {
-        const header = document.querySelector(".site-header");
-        const button = document.getElementById("mobileMenuBtn");
-
-        if (!header || !button) return;
-
-        function closeMenu() {
-          header.classList.remove("menu-open");
-          document.body.classList.remove("menu-locked");
-        }
-
-        function toggleMenu() {
-          header.classList.toggle("menu-open");
-          document.body.classList.toggle("menu-locked", header.classList.contains("menu-open"));
-        }
-
-        button.addEventListener("click", (event) => {
-          event.stopPropagation();
-          toggleMenu();
-        });
-
-        document.querySelectorAll(".nav-links a, .nav-actions a").forEach((link) => {
-          link.addEventListener("click", closeMenu);
-        });
-
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") {
-            closeMenu();
-          }
-        });
-
-        window.addEventListener("resize", () => {
-          if (window.innerWidth > 860) {
-            closeMenu();
-          }
-        });
-      }
-
-      window.VoiceFlowUI = {
-        toast: showToast
-      };
-
-      ready(() => {
-        autoHideFlashes();
-        setupConfirmActions();
-        setupMobileMenu();
-      });
-    })();
+    window.SmartLecture_CONFIG = {
+      serviceWorkerUrl: "{{ url_for('static', filename='sw.js') }}"
+    };
+    window.SmartLecture_I18N = {
+      confirmDefault: "{{ t('common.confirm_default') }}",
+      showPassword: "{{ t('common.show_password') }}",
+      hidePassword: "{{ t('common.hide_password') }}",
+      offline: "{{ t('common.offline') }}",
+      online: "{{ t('common.online') }}",
+      accessibilitySaved: "{{ t('accessibility.saved') }}"
+    };
   </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
   {% block extra_js %}{% endblock %}
 </body>

@@ -1,748 +1,293 @@
 {% extends "base.html" %}
 {% block title %}{{ t('history.page_title') }}{% endblock %}
 
-{% block extra_css %}
-<style>
-  .history-layout {
-    display: grid;
-    grid-template-columns: 0.78fr 1.22fr;
-    gap: 20px;
-    align-items: start;
-  }
-
-  .history-panel {
-    padding: 24px;
-    border-radius: 30px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow: 0 16px 44px rgba(0,0,0,0.24);
-  }
-
-  .history-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    gap: 16px;
-    margin-bottom: 18px;
-  }
-
-  .history-head h1 {
-    margin: 12px 0 8px;
-    font-size: clamp(30px, 4vw, 46px);
-    line-height: 1.02;
-    letter-spacing: -0.04em;
-  }
-
-  .history-head p {
-    margin: 0;
-    color: var(--muted);
-    line-height: 1.72;
-    max-width: 760px;
-  }
-
-  .history-count {
-    padding: 12px 16px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #dbe7ff;
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .side-title {
-    margin: 12px 0 10px;
-    font-size: 24px;
-    line-height: 1.08;
-    letter-spacing: -0.03em;
-  }
-
-  .side-text {
-    margin: 0 0 18px;
-    color: var(--muted);
-    line-height: 1.72;
-  }
-
-  .filter-group {
-    margin-bottom: 14px;
-  }
-
-  .filter-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #dbe7ff;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .filter-input,
-  .filter-select {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.04);
-    color: #ffffff;
-    outline: none;
-  }
-
-  .filter-input:focus,
-  .filter-select:focus {
-    border-color: rgba(124,58,237,0.55);
-    box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
-  }
-
-  .filter-actions {
-    display: grid;
-    gap: 10px;
-    margin-top: 6px;
-  }
-
-  .side-note {
-    margin-top: 18px;
-    padding: 16px 18px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #dbe7ff;
-    line-height: 1.68;
-  }
-
-  .history-list {
-    display: grid;
-    gap: 14px;
-  }
-
-  .record-card {
-    padding: 18px;
-    border-radius: 24px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.035));
-    border: 1px solid rgba(255,255,255,0.07);
-  }
-
-  .record-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: start;
-    margin-bottom: 14px;
-  }
-
-  .record-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .meta-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .03em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255,255,255,0.07);
-  }
-
-  .meta-source {
-    background: rgba(124,58,237,0.14);
-    color: #ddd6fe;
-    border-color: rgba(124,58,237,0.2);
-  }
-
-  .meta-date {
-    background: rgba(255,255,255,0.04);
-    color: var(--muted);
-  }
-
-  .meta-language {
-    background: rgba(34,211,238,0.12);
-    color: #dff9ff;
-    border-color: rgba(34,211,238,0.18);
-  }
-
-  .record-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .action-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.04);
-    color: #ffffff;
-    cursor: pointer;
-    transition: .2s ease;
-  }
-
-  .action-btn:hover {
-    background: rgba(255,255,255,0.08);
-    transform: translateY(-1px);
-  }
-
-  .action-btn.active {
-    background: rgba(245,158,11,0.14);
-    border-color: rgba(245,158,11,0.18);
-    color: #fde68a;
-  }
-
-  .action-btn.delete {
-    color: #fecaca;
-    border-color: rgba(239,68,68,0.18);
-  }
-
-  .record-text {
-    color: #eef4ff;
-    line-height: 1.78;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin-bottom: 14px;
-  }
-
-  .saved-summary {
-    margin-bottom: 14px;
-    padding: 16px;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-
-  .saved-summary strong {
-    display: block;
-    margin-bottom: 8px;
-    color: #ffffff;
-    font-size: 14px;
-  }
-
-  .saved-summary p {
-    margin: 0;
-    color: #dbe7ff;
-    line-height: 1.72;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .keyword-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-  }
-
-  .keyword-row span {
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: rgba(124,58,237,0.14);
-    border: 1px solid rgba(124,58,237,0.18);
-    color: #ddd6fe;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .record-footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .record-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .record-stat {
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    color: #dbe7ff;
-    font-size: 13px;
-  }
-
-  .empty-state {
-    padding: 34px 28px;
-    border-radius: 24px;
-    text-align: center;
-    background: rgba(255,255,255,0.03);
-    border: 1px dashed rgba(255,255,255,0.12);
-  }
-
-  .empty-state h3 {
-    margin: 0 0 10px;
-    font-size: 28px;
-    letter-spacing: -0.03em;
-  }
-
-  .empty-state p {
-    margin: 0 0 18px;
-    color: var(--muted);
-    line-height: 1.72;
-  }
-
-  @media (max-width: 1080px) {
-    .history-layout {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 760px) {
-    .history-head,
-    .record-top,
-    .record-footer {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .record-actions {
-      justify-content: flex-start;
-    }
-
-    .history-count {
-      width: fit-content;
-    }
-  }
-  .export-wrap {
-  position: relative;
-}
-
-.export-menu {
-  position: absolute;
-  top: 46px;
-  right: 0;
-  min-width: 150px;
-  padding: 8px;
-  border-radius: 14px;
-  background: #111827;
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-  display: none;
-  z-index: 20;
-}
-
-.export-menu.show {
-  display: grid;
-  gap: 6px;
-}
-
-.export-option {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 0;
-  background: transparent;
-  color: #ffffff;
-  text-align: left;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.export-option:hover {
-  background: rgba(255,255,255,0.08);
-}
-</style>
-{% endblock %}
-
 {% block content %}
 <section class="section">
   <div class="container">
-    <div class="history-layout">
-      <div class="history-panel">
-        <span class="badge">{{ t('history.controls_badge') }}</span>
-        <h2 class="side-title">{{ t('history.side_title') }}</h2>
-        <p class="side-text">
-          {{ t('history.side_text') }}
-        </p>
+    <div class="history-layout card-grid">
+      <aside class="history-sidebar panel">
+        <span class="badge">{{ t('history.filters') }}</span>
+        <h2>{{ t('history.controls') }}</h2>
+        <p class="muted">{{ t('history.controls_text') }}</p>
 
-        <div class="filter-group">
-          <label for="searchInput">{{ t('history.search_label') }}</label>
-          <input
-            id="searchInput"
-            class="filter-input"
-            type="text"
-            placeholder="{{ t('history.search_placeholder') }}"
-          >
-        </div>
-
-        <div class="filter-group">
-          <label for="sourceFilter">{{ t('history.mode_label') }}</label>
-          <select id="sourceFilter" class="filter-select">
-            <option value="all">{{ t('history.mode_all') }}</option>
-            <option value="demo">{{ t('history.mode_demo') }}</option>
-            <option value="dialog">{{ t('history.mode_dialog') }}</option>
-            <option value="subtitles">{{ t('history.mode_subtitles') }}</option>
+        <div class="form-group"><label for="searchInput">{{ t('history.search') }}</label><input id="searchInput" class="input" type="text"></div>
+        <div class="form-group"><label for="languageFilter">{{ t('history.language') }}</label><input id="languageFilter" class="input" type="text"></div>
+        <div class="form-group">
+          <label for="sourceFilter">{{ t('history.source') }}</label>
+          <select id="sourceFilter">
+            <option value="">{{ t('history.all') }}</option>
+            <option value="speech">{{ t('history.speech') }}</option>
+            <option value="study">{{ t('history.study') }}</option>
+            <option value="dialog">{{ t('history.dialog') }}</option>
+            <option value="subtitles">{{ t('history.subtitles') }}</option>
+            <option value="lecture">{{ t('history.lecture') }}</option>
           </select>
         </div>
+        <div class="form-group"><label for="folderFilter">{{ t('history.folder') }}</label><input id="folderFilter" class="input" type="text"></div>
+        <div class="form-group"><label for="tagFilter">{{ t('history.tag') }}</label><input id="tagFilter" class="input" type="text"></div>
+        <div class="form-group"><label for="favoriteFilter">{{ t('history.favorites') }}</label><select id="favoriteFilter"><option value="">{{ t('history.all') }}</option><option value="1">{{ t('history.only_favorites') }}</option></select></div>
+        <div class="form-group"><label for="pinnedFilter">{{ t('history.pinned') }}</label><select id="pinnedFilter"><option value="">{{ t('history.all') }}</option><option value="1">{{ t('history.only_pinned') }}</option></select></div>
+        <button type="button" class="btn btn-primary full" id="applyFiltersBtn">{{ t('history.apply') }}</button>
+        <button type="button" class="btn btn-soft full" id="resetFiltersBtn">{{ t('history.reset') }}</button>
+      </aside>
 
-        <div class="filter-group">
-          <label for="favoriteFilter">{{ t('history.favorite_label') }}</label>
-          <select id="favoriteFilter" class="filter-select">
-            <option value="all">{{ t('history.favorite_all') }}</option>
-            <option value="yes">{{ t('history.favorite_yes') }}</option>
-            <option value="no">{{ t('history.favorite_no') }}</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button type="button" class="btn btn-primary" id="applyFiltersBtn">{{ t('history.apply') }}</button>
-          <button type="button" class="btn btn-soft" id="resetFiltersBtn">{{ t('history.reset') }}</button>
-        </div>
-
-        <div class="side-note">
-          {{ t('history.note') }}
-        </div>
-      </div>
-
-      <div class="history-panel">
-        <div class="history-head">
+      <section class="history-main panel">
+        <div class="history-topbar">
           <div>
-            <span class="badge">{{ t('history.saved_badge') }}</span>
-            <h1>{{ t('history.title') }}</h1>
-            <p>
-              {{ t('history.subtitle') }}
-            </p>
+            <span class="badge">{{ t('history.saved_work') if not favorites_only else t('favorites.badge') }}</span>
+            <h1>{{ t('history.title') if not favorites_only else t('favorites.title') }}</h1>
+            <p class="muted">{{ t('history.subtitle') if not favorites_only else t('favorites.subtitle') }}</p>
           </div>
-
-          <div class="history-count">
-            {{ t('history.results') }}: <span id="historyCount">0</span>
-          </div>
+          <div class="history-count">{{ t('history.results') }}: <span id="historyCount">0</span></div>
         </div>
-
-        {% if history and history|length > 0 %}
-          <div class="history-list" id="historyList">
-            {% for item in history %}
-              <article
-                class="record-card"
-                data-id="{{ item.id }}"
-                data-source="{{ item.source if item.source else 'demo' }}"
-                data-favorite="{{ 'yes' if item.is_favorite else 'no' }}"
-                data-text="{{ ((item.text or '') ~ ' ' ~ (item.summary or ''))|lower }}"
-                data-export-url="/api/history/{{ item.id }}/export"
-              >
-                <div class="record-top">
-                  <div class="record-meta">
-                    <span class="meta-pill meta-source">{{ item.source if item.source else 'demo' }}</span>
-                    <span class="meta-pill meta-date">
-                      {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else '-' }}
-                    </span>
-                    <span class="meta-pill meta-language">{{ item.language if item.language else 'ru-RU' }}</span>
-                  </div>
-
-                  <div class="record-actions">
-                    <button
-                      type="button"
-                      class="action-btn favorite-btn {% if item.is_favorite %}active{% endif %}"
-                      data-id="{{ item.id }}"
-                      data-state="{% if item.is_favorite %}1{% else %}0{% endif %}"
-                      title="{{ t('history.favorite_action') }}"
-                    >★</button>
-
-                    <button
-                      type="button"
-                      class="action-btn copy-btn"
-                      data-text="{{ item.text }}"
-                      title="{{ t('history.copy_action') }}"
-                    >⧉</button>
-
-                    <div class="export-wrap">
-  <button
-    type="button"
-    class="action-btn export-toggle"
-    data-id="{{ item.id }}"
-    title="{{ t('history.export_action') }}"
-  >⤓</button>
-
-  <div class="export-menu">
-    <button
-      type="button"
-      class="export-option export-pdf-btn"
-      data-url="/api/history/{{ item.id }}/export/pdf"
-    >
-      {{ t('history.export_pdf') }}
-    </button>
-
-    <button
-      type="button"
-      class="export-option export-txt-btn"
-      data-url="/api/history/{{ item.id }}/export/txt"
-    >
-      {{ t('history.export_txt') }}
-    </button>
-  </div>
-</div>
-
-                    <button
-                      type="button"
-                      class="action-btn delete delete-btn"
-                      data-id="{{ item.id }}"
-                      title="{{ t('history.delete_action') }}"
-                    >×</button>
-                  </div>
-                </div>
-
-                <div class="record-text">{{ item.text }}</div>
-
-                {% if item.summary %}
-                  <div class="saved-summary">
-                    <strong>{{ t('history.saved_summary') }}</strong>
-                    <p>{{ item.summary }}</p>
-
-                    {% if item.keywords_json %}
-                      <div class="keyword-row">
-                        {% for keyword in item.keywords_json %}
-                          <span>{{ keyword }}</span>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
-                  </div>
-                {% endif %}
-
-                <div class="record-footer">
-                  <div class="record-stats">
-                    <span class="record-stat">ID {{ item.id }}</span>
-                    <span class="record-stat">
-                      {{ item.word_count if item.word_count is defined else ((item.text or '').split()|length) }} {{ t('history.words') }}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="empty-state">
-            <h3>{{ t('history.empty_title') }}</h3>
-            <p>
-              {{ t('history.empty_text') }}
-            </p>
-            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('history.empty_button') }}</a>
-          </div>
-        {% endif %}
-      </div>
+        <div class="history-list" id="historyList"></div>
+        <div class="empty-state" id="emptyState" hidden>
+          <h3>{{ t('history.empty_title') }}</h3>
+          <p class="muted">{{ t('history.empty_text') }}</p>
+          <a href="{{ url_for('main.workspace') }}" class="btn btn-primary">{{ t('history.open_workspace') }}</a>
+        </div>
+      </section>
     </div>
   </div>
 </section>
+
+<div class="modal-backdrop" id="detailModal" hidden>
+  <div class="modal-panel panel">
+    <div class="history-topbar">
+      <div>
+        <span class="badge" id="modalSource">{{ t('history.source_badge') }}</span>
+        <h2 id="modalTitle">{{ t('history.record') }}</h2>
+        <p class="muted" id="modalMeta"></p>
+      </div>
+      <button type="button" class="btn btn-soft" id="closeModalBtn">{{ t('history.close') }}</button>
+    </div>
+    <div class="edit-grid">
+      <input id="editTitle" class="input" type="text">
+      <input id="editFolder" class="input" type="text">
+      <input id="editTags" class="input" type="text">
+    </div>
+    <div class="record-actions">
+      <button type="button" class="btn btn-primary" id="saveMetaBtn">{{ t('history.save_meta') }}</button>
+      <button type="button" class="btn btn-soft" id="modalFavoriteBtn">{{ t('history.add_favorite') }}</button>
+      <button type="button" class="btn btn-soft" id="modalPinBtn">{{ t('history.pin') }}</button>
+      <a class="btn btn-soft" id="modalTxt" href="#">{{ t('history.download_txt') }}</a>
+      <a class="btn btn-soft" id="modalPdf" href="#">{{ t('history.download_pdf') }}</a>
+      <a class="btn btn-soft" id="modalDocx" href="#">{{ t('history.download_docx') }}</a>
+      <button type="button" class="btn btn-danger" id="modalDeleteBtn">{{ t('history.delete') }}</button>
+    </div>
+    <div class="modal-grid">
+      <div class="modal-section"><h3>{{ t('history.tags') }}</h3><div class="chip-row" id="modalTags"></div></div>
+      <div class="modal-section"><h3>{{ t('history.keywords') }}</h3><div class="chip-row" id="modalKeywords"></div></div>
+      <div class="modal-section"><h3>{{ t('history.summary') }}</h3><p class="muted" id="modalSummary"></p></div>
+      <div class="modal-section"><h3>{{ t('history.study_pack') }}</h3><div class="muted" id="modalStudyPack"></div></div>
+    </div>
+    <div class="modal-section"><h3>{{ t('history.full_text') }}</h3><p class="record-text" id="modalText"></p></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 (() => {
   const TEXTS = {
-    copied: "{{ t('history.toast_copied') }}",
-    copyFailed: "{{ t('history.toast_copy_failed') }}",
-    favoriteAdded: "{{ t('history.toast_favorite_added') }}",
-    favoriteRemoved: "{{ t('history.toast_favorite_removed') }}",
-    favoriteFailed: "{{ t('history.toast_favorite_failed') }}",
-    deleted: "{{ t('history.toast_deleted') }}",
-    deleteFailed: "{{ t('history.toast_delete_failed') }}",
-    serverUnavailable: "{{ t('history.toast_server_unavailable') }}",
-    confirmDelete: "{{ t('history.confirm_delete') }}"
+    none: "{{ t('history.none') }}", words: "{{ t('history.words') }}",
+    deleteConfirm: "{{ t('history.delete_confirm') }}", loadingFailed: "{{ t('history.loading_failed') }}",
+    updateFailed: "{{ t('history.update_failed') }}", favoriteFailed: "{{ t('history.favorite_failed') }}",
+    deleteFailed: "{{ t('history.delete_failed') }}", metadataSaved: "{{ t('history.metadata_saved') }}",
+    noSummary: "{{ t('history.no_summary') }}", open: "{{ t('history.open') }}",
+    favorite: "{{ t('history.favorite') }}", favorited: "{{ t('history.favorited') }}",
+    pin: "{{ t('history.pin_short') }}", pinned: "{{ t('history.pinned_short') }}",
+    addFavorite: "{{ t('history.add_favorite') }}", removeFavorite: "{{ t('history.remove_favorite') }}",
+    pinRecord: "{{ t('history.pin') }}", unpinRecord: "{{ t('history.unpin') }}",
+    delete: "{{ t('history.delete') }}",
+    txt: "{{ t('history.download_txt') }}",
+    pdf: "{{ t('history.download_pdf') }}",
+    docx: "{{ t('history.download_docx') }}"
   };
-
-  const searchInput = document.getElementById("searchInput");
-  const sourceFilter = document.getElementById("sourceFilter");
-  const favoriteFilter = document.getElementById("favoriteFilter");
-  const applyFiltersBtn = document.getElementById("applyFiltersBtn");
-  const resetFiltersBtn = document.getElementById("resetFiltersBtn");
-  const historyList = document.getElementById("historyList");
-  const historyCount = document.getElementById("historyCount");
-
-  function toast(message, type = "info") {
-    if (window.VoiceFlowUI?.toast) {
-      window.VoiceFlowUI.toast(message, type);
+  const state = { items: [], active: null };
+  const favoritesOnlyPage = {{ 'true' if favorites_only else 'false' }};
+  const list = document.getElementById("historyList");
+  const emptyState = document.getElementById("emptyState");
+  const count = document.getElementById("historyCount");
+  const modal = document.getElementById("detailModal");
+  function toast(message, type = "info") { window.SmartLectureUI?.toast(message, type); }
+  function renderChips(node, values) {
+    node.replaceChildren();
+    if (!values || !values.length) {
+      const empty = document.createElement("span");
+      empty.className = "muted";
+      empty.textContent = TEXTS.none;
+      node.appendChild(empty);
+      return;
     }
-  }
-
-  function getCards() {
-    if (!historyList) return [];
-    return Array.from(historyList.querySelectorAll(".record-card"));
-  }
-
-  function applyFilters() {
-    const query = (searchInput?.value || "").trim().toLowerCase();
-    const source = sourceFilter?.value || "all";
-    const favorite = favoriteFilter?.value || "all";
-
-    let visibleCount = 0;
-
-    getCards().forEach(card => {
-      const matchesText = !query || (card.dataset.text || "").includes(query);
-      const matchesSource = source === "all" || (card.dataset.source || "demo") === source;
-      const matchesFavorite = favorite === "all" || (card.dataset.favorite || "no") === favorite;
-
-      const visible = matchesText && matchesSource && matchesFavorite;
-      card.style.display = visible ? "" : "none";
-
-      if (visible) visibleCount++;
+    values.forEach((item) => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = item;
+      node.appendChild(chip);
     });
-
-    if (historyCount) {
-      historyCount.textContent = visibleCount;
-    }
   }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text || "");
-      toast(TEXTS.copied, "success");
-    } catch (error) {
-      console.error(error);
-      toast(TEXTS.copyFailed, "error");
-    }
+  function params() {
+    const p = new URLSearchParams();
+    const map = { search: "searchInput", language: "languageFilter", source: "sourceFilter", folder: "folderFilter", tag: "tagFilter", favorites_only: "favoriteFilter", pinned_only: "pinnedFilter" };
+    Object.entries(map).forEach(([key, id]) => { const value = document.getElementById(id)?.value.trim(); if (value) p.set(key, value); });
+    p.set("per_page", "100");
+    if (favoritesOnlyPage) p.set("favorites_only", "1");
+    return p.toString();
   }
-
-  async function toggleFavorite(button) {
-    const id = button.dataset.id;
-    const currentState = button.dataset.state === "1";
-
-    try {
-      const response = await fetch(`/api/history/${id}/favorite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          is_favorite: !currentState
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast(data.error || TEXTS.favoriteFailed, "error");
-        return;
-      }
-
-      const newState = data.is_favorite === true;
-      button.dataset.state = newState ? "1" : "0";
-      button.classList.toggle("active", newState);
-
-      const card = button.closest(".record-card");
-      if (card) {
-        card.dataset.favorite = newState ? "yes" : "no";
-      }
-
-      toast(newState ? TEXTS.favoriteAdded : TEXTS.favoriteRemoved, "success");
-      applyFilters();
-    } catch (error) {
-      console.error(error);
-      toast(TEXTS.serverUnavailable, "error");
-    }
+  async function loadHistory() {
+    const response = await fetch(`/api/history?${params()}`);
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) { toast(payload.error || TEXTS.loadingFailed, "error"); return; }
+    state.items = payload.data.items || [];
+    render();
   }
-
-  function exportItem(button) {
-    const card = button.closest(".record-card");
-    if (!card) return;
-    const url = card.dataset.exportUrl;
-    if (url) {
-      window.location.href = url;
-    }
+  function formatDate(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString();
   }
-
-  async function deleteItem(button) {
-    const id = button.dataset.id;
-    const confirmed = window.confirm(TEXTS.confirmDelete);
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/history/${id}`, {
-        method: "DELETE"
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast(data.error || TEXTS.deleteFailed, "error");
-        return;
-      }
-
-      const card = button.closest(".record-card");
-      if (card) {
-        card.remove();
-      }
-
-      toast(TEXTS.deleted, "success");
-      applyFilters();
-    } catch (error) {
-      console.error(error);
-      toast(TEXTS.serverUnavailable, "error");
-    }
-  }
-
-  applyFiltersBtn?.addEventListener("click", applyFilters);
-
-  resetFiltersBtn?.addEventListener("click", () => {
-    if (searchInput) searchInput.value = "";
-    if (sourceFilter) sourceFilter.value = "all";
-    if (favoriteFilter) favoriteFilter.value = "all";
-    applyFilters();
-  });
-
-  searchInput?.addEventListener("input", applyFilters);
-  sourceFilter?.addEventListener("change", applyFilters);
-  favoriteFilter?.addEventListener("change", applyFilters);
-
-  document.querySelectorAll(".copy-btn").forEach(button => {
-    button.addEventListener("click", () => copyText(button.dataset.text || ""));
-  });
-
-  document.querySelectorAll(".favorite-btn").forEach(button => {
-    button.addEventListener("click", () => toggleFavorite(button));
-  });
-
-document.querySelectorAll(".export-toggle").forEach(button => {
-  button.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    document.querySelectorAll(".export-menu.show").forEach(menu => {
-      if (menu !== button.parentElement.querySelector(".export-menu")) {
-        menu.classList.remove("show");
-      }
+  function makeAction(tag, className, text, attrs = {}) {
+    const node = document.createElement(tag);
+    node.className = className;
+    node.textContent = text;
+    Object.entries(attrs).forEach(([key, value]) => {
+      if (key === "dataset") Object.entries(value).forEach(([dataKey, dataValue]) => node.dataset[dataKey] = dataValue);
+      else node.setAttribute(key, value);
     });
+    return node;
+  }
+  function render() {
+    count.textContent = state.items.length;
+    emptyState.hidden = Boolean(state.items.length);
+    list.replaceChildren();
+    state.items.forEach((item) => {
+      const article = document.createElement("article");
+      article.className = `history-card ${item.is_pinned ? "pinned" : ""}`;
+      article.dataset.id = item.id;
 
-    const menu = button.parentElement.querySelector(".export-menu");
-    if (menu) {
-      menu.classList.toggle("show");
-    }
+      const top = document.createElement("div");
+      top.className = "history-card-top";
+      const content = document.createElement("div");
+      const title = document.createElement("h2");
+      title.className = "record-title";
+      title.textContent = item.title || "";
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      [[item.source || "speech", "history-badge"], [item.language || "-", "history-badge"], [`${item.word_count || 0} ${TEXTS.words}`, "history-date"], [formatDate(item.created_at), "history-date"]].forEach(([text, className]) => {
+        const span = document.createElement("span");
+        span.className = className;
+        span.textContent = text;
+        meta.appendChild(span);
+      });
+      if (item.is_pinned) {
+        const pinned = document.createElement("span");
+        pinned.className = "history-badge";
+        pinned.textContent = TEXTS.pinned;
+        meta.appendChild(pinned);
+      }
+      content.append(title, meta);
+
+      const actions = document.createElement("div");
+      actions.className = "history-actions";
+      actions.append(
+        makeAction("button", "btn btn-soft open-btn", TEXTS.open, { type: "button", dataset: { id: item.id } }),
+        makeAction("a", "btn btn-outline", TEXTS.txt, { href: `/api/history/${item.id}/export/txt` }),
+        makeAction("a", "btn btn-outline", TEXTS.pdf, { href: `/api/history/${item.id}/export/pdf` }),
+        makeAction("a", "btn btn-outline", TEXTS.docx, { href: `/api/history/${item.id}/export/docx` }),
+        makeAction("button", `btn btn-soft favorite-btn ${item.is_favorite ? "active" : ""}`, item.is_favorite ? TEXTS.favorited : TEXTS.favorite, { type: "button", dataset: { id: item.id } }),
+        makeAction("button", `btn btn-soft pin-btn ${item.is_pinned ? "active" : ""}`, item.is_pinned ? TEXTS.pinned : TEXTS.pin, { type: "button", dataset: { id: item.id } }),
+        makeAction("button", "btn btn-danger delete-btn", TEXTS.delete, { type: "button", dataset: { id: item.id } })
+      );
+      top.append(content, actions);
+
+      const chipRow = document.createElement("div");
+      chipRow.className = "chip-row";
+      renderChips(chipRow, item.tags);
+      if (item.folder) {
+        const folder = document.createElement("span");
+        folder.className = "chip";
+        folder.textContent = item.folder;
+        chipRow.appendChild(folder);
+      }
+      const text = document.createElement("p");
+      text.className = "record-text";
+      text.textContent = `${(item.text || "").slice(0, 320)}${(item.text || "").length > 320 ? "..." : ""}`;
+      article.append(top, chipRow, text);
+      list.appendChild(article);
+    });
+  }
+  function itemById(id) { return state.items.find((item) => String(item.id) === String(id)); }
+  async function patchItem(id, data) {
+    const response = await fetch(`/api/history/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error(payload.error || TEXTS.updateFailed);
+    const idx = state.items.findIndex((item) => item.id === payload.data.id);
+    if (idx >= 0) state.items[idx] = payload.data;
+    state.active = payload.data; render(); return payload.data;
+  }
+  async function toggleFavorite(id) {
+    const item = itemById(id) || state.active;
+    const response = await fetch(`/api/history/${id}/favorite`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_favorite: !item.is_favorite }) });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error(payload.error || TEXTS.favoriteFailed);
+    item.is_favorite = payload.data.is_favorite; render(); if (state.active?.id === item.id) openModal(item);
+  }
+  async function deleteItem(id) {
+    if (!confirm(TEXTS.deleteConfirm)) return;
+    const response = await fetch(`/api/history/${id}`, { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error(payload.error || TEXTS.deleteFailed);
+    state.items = state.items.filter((item) => String(item.id) !== String(id));
+    modal.hidden = true; render();
+  }
+  function openModal(item) {
+    if (!item) return;
+    state.active = item;
+    document.getElementById("modalSource").textContent = item.source || "speech";
+    document.getElementById("modalTitle").textContent = item.title || "";
+    document.getElementById("modalMeta").textContent = `${item.created_at || "-"} | ${item.language || "-"} | ${item.duration || 0}s | ${item.word_count || 0} ${TEXTS.words}`;
+    document.getElementById("editTitle").value = item.title || "";
+    document.getElementById("editFolder").value = item.folder || "";
+    document.getElementById("editTags").value = (item.tags || []).join(", ");
+    renderChips(document.getElementById("modalTags"), item.tags);
+    renderChips(document.getElementById("modalKeywords"), item.keywords_json);
+    document.getElementById("modalSummary").textContent = item.summary || TEXTS.noSummary;
+    document.getElementById("modalStudyPack").textContent = item.summary || TEXTS.noSummary;
+    document.getElementById("modalText").textContent = item.text || "";
+    document.getElementById("modalFavoriteBtn").textContent = item.is_favorite ? TEXTS.removeFavorite : TEXTS.addFavorite;
+    document.getElementById("modalPinBtn").textContent = item.is_pinned ? TEXTS.unpinRecord : TEXTS.pinRecord;
+    document.getElementById("modalTxt").href = `/api/history/${item.id}/export/txt`;
+    document.getElementById("modalPdf").href = `/api/history/${item.id}/export/pdf`;
+    document.getElementById("modalDocx").href = `/api/history/${item.id}/export/docx`;
+    modal.hidden = false;
+  }
+  document.getElementById("applyFiltersBtn").addEventListener("click", loadHistory);
+  document.getElementById("resetFiltersBtn").addEventListener("click", () => { ["searchInput","languageFilter","sourceFilter","folderFilter","tagFilter","favoriteFilter","pinnedFilter"].forEach((id) => document.getElementById(id).value = ""); loadHistory(); });
+  list.addEventListener("click", async (event) => {
+    const button = event.target.closest("button"); if (!button) return;
+    const id = button.dataset.id;
+    try {
+      if (button.classList.contains("open-btn")) openModal(itemById(id));
+      if (button.classList.contains("favorite-btn")) await toggleFavorite(id);
+      if (button.classList.contains("pin-btn")) await patchItem(Number(id), { is_pinned: !itemById(id).is_pinned });
+      if (button.classList.contains("delete-btn")) await deleteItem(id);
+    } catch (error) { toast(error.message, "error"); }
   });
-});
-
-document.querySelectorAll(".export-option").forEach(button => {
-  button.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    const url = button.dataset.url;
-    if (url) {
-      window.location.href = url;
-    }
-
-    const menu = button.closest(".export-menu");
-    if (menu) {
-      menu.classList.remove("show");
-    }
+  document.getElementById("closeModalBtn").addEventListener("click", () => modal.hidden = true);
+  modal.addEventListener("click", (event) => { if (event.target === modal) modal.hidden = true; });
+  document.getElementById("saveMetaBtn").addEventListener("click", async () => {
+    if (!state.active) return;
+    try {
+      const item = await patchItem(state.active.id, { title: document.getElementById("editTitle").value, folder: document.getElementById("editFolder").value, tags: document.getElementById("editTags").value.split(",").map((x) => x.trim()).filter(Boolean) });
+      openModal(item); toast(TEXTS.metadataSaved, "success");
+    } catch (error) { toast(error.message, "error"); }
   });
-});
-
-document.addEventListener("click", () => {
-  document.querySelectorAll(".export-menu.show").forEach(menu => {
-    menu.classList.remove("show");
-  });
-});
-
-  document.querySelectorAll(".delete-btn").forEach(button => {
-    button.addEventListener("click", () => deleteItem(button));
-  });
-
-  applyFilters();
+  document.getElementById("modalFavoriteBtn").addEventListener("click", async () => { if (state.active) await toggleFavorite(state.active.id); });
+  document.getElementById("modalPinBtn").addEventListener("click", async () => { if (state.active) openModal(await patchItem(state.active.id, { is_pinned: !state.active.is_pinned })); });
+  document.getElementById("modalDeleteBtn").addEventListener("click", async () => { if (state.active) await deleteItem(state.active.id); });
+  loadHistory();
 })();
 </script>
 {% endblock %}

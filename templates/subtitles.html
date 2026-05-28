@@ -1,57 +1,219 @@
 {% extends "base.html" %}
-{% block title %}Режим субтитров{% endblock %}
+{% block title %}{{ t('subtitles.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .captions-page {
+    display: grid;
+    gap: 18px;
+  }
+
+  .captions-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: end;
+  }
+
+  .captions-head h1 {
+    margin: 12px 0 8px;
+    font-size: clamp(34px, 5vw, 62px);
+    line-height: 1.02;
+  }
+
+  .captions-head p {
+    margin: 0;
+    max-width: 820px;
+    color: var(--muted);
+    line-height: 1.72;
+  }
+
+  .caption-status {
+    min-width: 190px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
+    color: #dbe7ff;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .caption-status.recording {
+    color: #bbf7d0;
+    border-color: rgba(34,197,94,0.3);
+    background: rgba(34,197,94,0.14);
+  }
+
+  .caption-dot {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: #64748b;
+    vertical-align: -1px;
+  }
+
+  .caption-status.recording .caption-dot {
+    background: #22c55e;
+    box-shadow: 0 0 0 7px rgba(34,197,94,0.12);
+    animation: captionDot 1.4s ease-in-out infinite;
+  }
+
+  @keyframes captionDot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: .72; }
+  }
+
+  .caption-toolbar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    gap: 10px;
+  }
+
+  .caption-toolbar .btn,
+  .caption-toolbar select {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .caption-screen {
+    min-height: min(58vh, 620px);
+    padding: clamp(22px, 4vw, 46px);
+    border-radius: 18px;
+    background: #07111f;
+    border: 2px solid rgba(255,255,255,0.12);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
+    font-weight: 800;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .caption-screen.size-small { font-size: clamp(26px, 4vw, 42px); }
+  .caption-screen.size-medium { font-size: clamp(34px, 5vw, 58px); }
+  .caption-screen.size-large { font-size: clamp(44px, 7vw, 78px); }
+  .caption-screen.size-xl { font-size: clamp(54px, 9vw, 104px); }
+  .caption-screen.high-contrast {
+    background: #000000;
+    color: #ffff00;
+    border-color: #ffffff;
+  }
+
+  .caption-screen.bg-dark { background: #07111f; color: #ffffff; }
+  .caption-screen.bg-black { background: #000000; color: #ffffff; }
+  .caption-screen.bg-blue { background: #05264a; color: #f8fafc; }
+  .caption-screen.bg-light { background: #f8fafc; color: #0f172a; border-color: #0f172a; }
+
+  .caption-screen:fullscreen {
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 6vw;
+  }
+
+  .caption-settings {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .caption-setting {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: grid;
+    gap: 8px;
+  }
+
+  .caption-setting label {
+    color: #dbe7ff;
+    font-weight: 800;
+    font-size: 13px;
+  }
+
+  .caption-setting select {
+    min-height: 46px;
+  }
+
+  @media (max-width: 900px) {
+    .captions-head,
+    .caption-toolbar,
+    .caption-settings {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <section class="section">
-  <div class="container">
-
-    <div class="page-head">
+  <div class="container captions-page">
+    <div class="captions-head">
       <div>
-        <span class="badge">Live captions</span>
-        <h1>Режим субтитров</h1>
-        <p>Крупный текст для отображения речи в формате удобных live-субтитров.</p>
+        <span class="badge">{{ t('subtitles.badge') }}</span>
+        <h1>{{ t('subtitles.title') }}</h1>
+        <p>{{ t('subtitles.subtitle') }}</p>
+      </div>
+      <div class="caption-status" id="subStatus" aria-live="polite">
+        <span class="caption-dot" aria-hidden="true"></span>{{ t('subtitles.status_idle') }}
       </div>
     </div>
 
-    <div class="card-grid demo-layout">
-      <div class="panel demo-main">
-        <div class="demo-toolbar">
-          <button id="subStartBtn" class="btn btn-primary" type="button">Начать</button>
-          <button id="subStopBtn" class="btn btn-soft" type="button" disabled>Стоп</button>
-          <button id="subClearBtn" class="btn btn-soft" type="button">Очистить</button>
-          <button id="subCopyBtn" class="btn btn-soft" type="button">Копировать</button>
-        </div>
+    <div class="caption-toolbar" role="toolbar" aria-label="{{ t('subtitles.controls') }}">
+      <button id="subStartBtn" class="btn btn-primary" type="button" aria-label="{{ t('dialog.start') }}">{{ t('dialog.start') }}</button>
+      <button id="subStopBtn" class="btn btn-soft" type="button" disabled aria-label="{{ t('dialog.stop') }}">{{ t('dialog.stop') }}</button>
+      <button id="subFullscreenBtn" class="btn btn-soft" type="button" aria-label="{{ t('subtitles.fullscreen') }}">{{ t('subtitles.fullscreen') }}</button>
+      <button id="subCopyBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.copy') }}">{{ t('dialog.copy') }}</button>
+      <button id="subSaveBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.save') }}">{{ t('dialog.save') }}</button>
+      <button id="subClearBtn" class="btn btn-soft" type="button" aria-label="{{ t('dialog.clear') }}">{{ t('dialog.clear') }}</button>
+    </div>
 
-        <div class="demo-toolbar second">
-          <select id="subLangSelect" class="input">
-            <option value="ru-RU">Русский</option>
-            <option value="kk-KZ">Қазақша</option>
-            <option value="en-US">English</option>
-          </select>
-
-          <div class="status-pill" id="subStatus">Ожидание</div>
-        </div>
-
-        <div id="subtitleScreen" class="subtitle-screen">
-          Говорите — здесь появятся субтитры...
-        </div>
+    <div class="caption-settings">
+      <div class="caption-setting">
+        <label for="subLangSelect">{{ t('nav.language') }}</label>
+        <select id="subLangSelect" class="filter-select">
+          <option value="ru-RU">{{ t('workspace.lang_ru') }}</option>
+          <option value="kk-KZ">{{ t('workspace.lang_kk') }}</option>
+          <option value="en-US">{{ t('workspace.lang_en') }}</option>
+        </select>
       </div>
-
-      <div class="panel side-panel">
-        <h3>Что дает этот режим</h3>
-        <ul class="clean-list">
-          <li>Крупное отображение текста</li>
-          <li>Удобно для демонстрации на экране</li>
-          <li>Распознавание речи в реальном времени</li>
-          <li>Подходит для лекций, встреч и презентаций</li>
-        </ul>
-
-        <div class="side-note">
-          Лучше всего использовать этот режим в Chrome или Edge с разрешенным микрофоном.
-        </div>
+      <div class="caption-setting">
+        <label for="subFontSelect">{{ t('accessibility.text_size') }}</label>
+        <select id="subFontSelect" class="filter-select">
+          <option value="small">{{ t('accessibility.size_small') }}</option>
+          <option value="medium" selected>{{ t('accessibility.size_medium') }}</option>
+          <option value="large">{{ t('accessibility.size_large') }}</option>
+          <option value="xl">{{ t('accessibility.size_xl') }}</option>
+        </select>
+      </div>
+      <div class="caption-setting">
+        <label for="subContrastSelect">{{ t('accessibility.contrast') }}</label>
+        <select id="subContrastSelect" class="filter-select">
+          <option value="normal">{{ t('accessibility.contrast_normal') }}</option>
+          <option value="high">{{ t('accessibility.contrast_high') }}</option>
+        </select>
+      </div>
+      <div class="caption-setting">
+        <label for="subBgSelect">{{ t('accessibility.caption_bg') }}</label>
+        <select id="subBgSelect" class="filter-select">
+          <option value="dark">{{ t('accessibility.bg_dark') }}</option>
+          <option value="black">{{ t('accessibility.bg_black') }}</option>
+          <option value="blue">{{ t('accessibility.bg_blue') }}</option>
+          <option value="light">{{ t('accessibility.bg_light') }}</option>
+        </select>
       </div>
     </div>
 
+    <div id="subScreen" class="caption-screen size-medium bg-dark" tabindex="0" aria-live="polite" aria-label="{{ t('subtitles.screen_label') }}">
+      {{ t('subtitles.empty') }}
+    </div>
   </div>
 </section>
 {% endblock %}
@@ -59,122 +221,131 @@
 {% block extra_js %}
 <script>
 (() => {
+  const TEXTS = {
+    empty: "{{ t('subtitles.empty') }}",
+    unsupported: "{{ t('dialog.unsupported') }}",
+    error: "{{ t('workspace.status_error') }}",
+    recording: "{{ t('subtitles.status_recording') }}",
+    idle: "{{ t('subtitles.status_idle') }}",
+    cleared: "{{ t('dialog.cleared') }}",
+    copied: "{{ t('dialog.copied') }}",
+    noCopy: "{{ t('subtitles.no_copy') }}",
+    noSave: "{{ t('dialog.no_save') }}",
+    saved: "{{ t('dialog.saved') }}",
+    saveFailed: "{{ t('dialog.save_failed') }}",
+    language: "{{ t('subtitles.language') }}",
+    sessionTitle: "{{ t('subtitles.session_title') }}"
+  };
   const startBtn = document.getElementById("subStartBtn");
   const stopBtn = document.getElementById("subStopBtn");
   const clearBtn = document.getElementById("subClearBtn");
   const copyBtn = document.getElementById("subCopyBtn");
+  const saveBtn = document.getElementById("subSaveBtn");
+  const fullscreenBtn = document.getElementById("subFullscreenBtn");
   const langSelect = document.getElementById("subLangSelect");
+  const fontSelect = document.getElementById("subFontSelect");
+  const contrastSelect = document.getElementById("subContrastSelect");
+  const bgSelect = document.getElementById("subBgSelect");
   const status = document.getElementById("subStatus");
-  const screen = document.getElementById("subtitleScreen");
-
+  const screen = document.getElementById("subScreen");
   let recognition = null;
+  let finalText = "";
   let isRecording = false;
-  let finalTranscript = "";
 
-  function setStatus(text) {
-    status.textContent = text;
+  function setStatus(text, recording = false) {
+    const dot = document.createElement("span");
+    dot.className = "caption-dot";
+    dot.setAttribute("aria-hidden", "true");
+    status.replaceChildren(dot, document.createTextNode(text));
+    status.classList.toggle("recording", recording);
+    screen.classList.toggle("recording-pulse", recording);
   }
+  function SpeechRecognitionCtor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+  function updateScreen(text) { screen.textContent = text.trim() || TEXTS.empty; }
 
-  function initRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
+  function setup() {
+    const SpeechRecognition = SpeechRecognitionCtor();
     if (!SpeechRecognition) {
-      setStatus("Браузер не поддерживает speech recognition");
+      setStatus(TEXTS.unsupported, false);
       startBtn.disabled = true;
-      stopBtn.disabled = true;
       return null;
     }
-
-    const recog = new SpeechRecognition();
-    recog.continuous = true;
-    recog.interimResults = true;
-    recog.lang = langSelect.value;
-
-    recog.onstart = () => {
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = langSelect.value;
+    rec.onstart = () => {
       isRecording = true;
       startBtn.disabled = true;
       stopBtn.disabled = false;
-      setStatus("Идет запись...");
+      setStatus(TEXTS.recording, true);
     };
-
-    recog.onend = () => {
+    rec.onend = () => {
       isRecording = false;
       startBtn.disabled = false;
       stopBtn.disabled = true;
-      setStatus("Ожидание");
+      setStatus(TEXTS.idle, false);
     };
-
-    recog.onerror = (event) => {
-      console.error(event);
-      isRecording = false;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      setStatus(`Ошибка: ${event.error}`);
+    rec.onerror = (event) => {
+      setStatus(`${TEXTS.error}: ${event.error}`, false);
     };
-
-    recog.onresult = (event) => {
-      let interimTranscript = "";
-
+    rec.onresult = (event) => {
+      let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + " ";
-        } else {
-          interimTranscript += transcript;
-        }
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += text + " ";
+        else interim += text;
       }
-
-      const text = (finalTranscript + interimTranscript).trim();
-      screen.textContent = text || "Говорите — здесь появятся субтитры...";
+      updateScreen(finalText + interim);
     };
-
-    return recog;
+    return rec;
   }
 
   startBtn.addEventListener("click", () => {
-    if (!recognition) {
-      recognition = initRecognition();
-    }
-    if (!recognition) return;
-
+    recognition = recognition || setup();
+    if (!recognition || isRecording) return;
     recognition.lang = langSelect.value;
     recognition.start();
   });
-
-  stopBtn.addEventListener("click", () => {
-    if (recognition && isRecording) {
-      recognition.stop();
-    }
-  });
-
-  clearBtn.addEventListener("click", () => {
-    finalTranscript = "";
-    screen.textContent = "Говорите — здесь появятся субтитры...";
-    setStatus("Очищено");
-  });
-
+  stopBtn.addEventListener("click", () => recognition?.stop());
+  clearBtn.addEventListener("click", () => { finalText = ""; updateScreen(""); setStatus(TEXTS.cleared, false); });
   copyBtn.addEventListener("click", async () => {
     const text = screen.textContent.trim();
-    if (!text || text === "Говорите — здесь появятся субтитры...") {
-      setStatus("Нет текста для копирования");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(text);
-      if (window.VoiceFlowUI?.toast) {
-        window.VoiceFlowUI.toast("Субтитры скопированы", "success");
-      }
-      setStatus("Скопировано");
-    } catch (error) {
-      console.error(error);
-      setStatus("Ошибка копирования");
-    }
+    if (!text || text === TEXTS.empty) { setStatus(TEXTS.noCopy, false); return; }
+    await navigator.clipboard.writeText(text);
+    setStatus(TEXTS.copied, false);
   });
-
-  langSelect.addEventListener("change", () => {
-    setStatus(`Язык: ${langSelect.options[langSelect.selectedIndex].text}`);
+  saveBtn.addEventListener("click", async () => {
+    const text = screen.textContent.trim();
+    if (!text || text === TEXTS.empty) { setStatus(TEXTS.noSave, false); return; }
+    saveBtn.disabled = true;
+    saveBtn.classList.add("is-loading");
+    const response = await fetch("/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: langSelect.value, source: "subtitles", title: TEXTS.sessionTitle })
+    });
+    const data = await response.json();
+    saveBtn.disabled = false;
+    saveBtn.classList.remove("is-loading");
+    setStatus(response.ok && data.ok !== false ? TEXTS.saved : (data.error || TEXTS.saveFailed), false);
   });
+  fullscreenBtn.addEventListener("click", async () => {
+    if (!document.fullscreenElement) await screen.requestFullscreen?.();
+    else await document.exitFullscreen?.();
+  });
+  fontSelect.addEventListener("change", () => {
+    screen.classList.remove("size-small", "size-medium", "size-large", "size-xl");
+    screen.classList.add(`size-${fontSelect.value}`);
+  });
+  contrastSelect.addEventListener("change", () => {
+    screen.classList.toggle("high-contrast", contrastSelect.value === "high");
+  });
+  bgSelect.addEventListener("change", () => {
+    screen.classList.remove("bg-dark", "bg-black", "bg-blue", "bg-light");
+    screen.classList.add(`bg-${bgSelect.value}`);
+  });
+  langSelect.addEventListener("change", () => setStatus(`${TEXTS.language}: ${langSelect.options[langSelect.selectedIndex].text}`, false));
 })();
 </script>
 {% endblock %}

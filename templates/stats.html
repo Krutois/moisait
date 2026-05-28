@@ -319,12 +319,13 @@
     const response = await fetch("/api/stats");
     const data = await response.json();
 
-    if (!response.ok) return;
+    if (!response.ok || data.ok === false) return;
 
-    const totalRecords = data.total_records || 0;
-    const favoriteRecords = data.favorite_records || 0;
-    const totalWords = data.total_words || 0;
-    const avgWords = data.avg_words || 0;
+    const stats = data.data || {};
+    const totalRecords = stats.total_records || 0;
+    const favoriteRecords = stats.favorite_records || 0;
+    const totalWords = stats.total_words || 0;
+    const avgWords = stats.avg_words || 0;
 
     setText("headlineMetric", totalRecords);
     setText("totalRecords", totalRecords);
@@ -344,14 +345,14 @@
     }
 
     const ctx = document.getElementById("activityChart");
-    if (ctx && Array.isArray(data.daily_activity)) {
+    if (ctx && Array.isArray(stats.daily_activity) && window.Chart) {
       new Chart(ctx, {
         type: "line",
         data: {
-          labels: data.daily_activity.map(item => item.date),
+          labels: stats.daily_activity.map(item => item.date),
           datasets: [{
             label: TEXTS.chartLabel,
-            data: data.daily_activity.map(item => item.count),
+            data: stats.daily_activity.map(item => item.count),
             borderWidth: 3,
             fill: true,
             tension: 0.35,
@@ -393,6 +394,11 @@
           }
         }
       });
+    } else if (ctx) {
+      const fallback = document.createElement("div");
+      fallback.className = "empty-state";
+      fallback.textContent = TEXTS.noteEmpty;
+      ctx.replaceWith(fallback);
     }
   } catch (error) {
     console.error(error);

@@ -9,32 +9,6 @@
     padding: 24px 0 72px;
   }
 
-  .landing::before,
-  .landing::after {
-    content: "";
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .landing::before {
-    width: 420px;
-    height: 420px;
-    top: -120px;
-    left: -140px;
-    background: rgba(124, 58, 237, 0.18);
-  }
-
-  .landing::after {
-    width: 420px;
-    height: 420px;
-    top: 40px;
-    right: -140px;
-    background: rgba(34, 211, 238, 0.12);
-  }
-
   .landing-inner {
     position: relative;
     z-index: 1;
@@ -129,6 +103,10 @@
     backdrop-filter: blur(18px);
   }
 
+  .hero-panel.live-preview {
+    border-color: rgba(20,184,166,0.22);
+  }
+
   .panel-top {
     display: flex;
     align-items: center;
@@ -158,14 +136,35 @@
     font-weight: 700;
   }
 
+  .panel-live-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #bbf7d0;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .panel-live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 0 7px rgba(34,197,94,0.12);
+  }
+
   .panel-editor {
-    min-height: 160px;
-    padding: 18px;
+    min-height: 210px;
+    padding: 24px;
     border-radius: 22px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: #07111f;
+    border: 1px solid rgba(20,184,166,0.18);
     color: #f3f7ff;
-    line-height: 1.7;
+    line-height: 1.45;
+    font-size: clamp(26px, 3.4vw, 42px);
+    font-weight: 850;
+    display: flex;
+    align-items: center;
   }
 
   .panel-summary {
@@ -279,6 +278,72 @@
     line-height: 1.72;
   }
 
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .how-card {
+    padding: 22px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.075);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.16);
+  }
+
+  .how-number {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: #ffffff;
+    font-weight: 850;
+  }
+
+  .how-card h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+  }
+
+  .how-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .lecture-callout {
+    margin-top: 18px;
+    padding: 28px;
+    border-radius: 28px;
+    background:
+      linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,211,238,0.10)),
+      rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .lecture-callout h2 {
+    margin: 14px 0 10px;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .lecture-callout p {
+    margin: 0;
+    max-width: 840px;
+    color: #dbe7ff;
+    line-height: 1.75;
+  }
+
   .split-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -350,7 +415,8 @@
     .hero,
     .feature-grid,
     .split-grid,
-    .panel-stats {
+    .panel-stats,
+    .how-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -378,6 +444,15 @@
       align-items: stretch;
     }
 
+    .lecture-callout {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .lecture-callout .btn {
+      width: 100%;
+    }
+
     .cta-box .btn {
       width: 100%;
     }
@@ -403,11 +478,12 @@
 
         <div class="hero-actions">
           {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.demo') }}" class="btn btn-primary hero-btn">{{ t('index.hero.primary_auth') }}</a>
+            <a href="{{ url_for('main.lecture') }}" class="btn btn-primary hero-btn">{{ t('index.hero.start_lecture') }}</a>
+            <a href="{{ url_for('main.subtitles') }}" class="btn btn-soft hero-btn">{{ t('index.hero.open_captions') }}</a>
           {% else %}
             <a href="{{ url_for('auth.register') }}" class="btn btn-primary hero-btn">{{ t('index.hero.primary_guest') }}</a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-soft hero-btn">{{ t('index.hero.open_captions') }}</a>
           {% endif %}
-          <a href="{{ url_for('main.about') }}" class="btn btn-soft hero-btn">{{ t('index.hero.secondary') }}</a>
         </div>
 
         <div class="hero-metrics">
@@ -417,16 +493,16 @@
         </div>
       </div>
 
-      <div class="hero-panel">
+      <div class="hero-panel live-preview">
         <div class="panel-top">
           <div class="panel-dots">
             <span></span><span></span><span></span>
           </div>
-          <div class="panel-badge">{{ t('index.preview.badge') }}</div>
+          <div class="panel-live-row"><span class="panel-live-dot"></span>{{ t('index.preview.live') }}</div>
         </div>
 
         <div class="panel-editor">
-          {{ t('index.preview.text') }}
+          {{ t('index.preview.caption') }}
         </div>
 
         <div class="panel-summary">
@@ -478,6 +554,73 @@
           <h3>{{ t('index.feature_3.title') }}</h3>
           <p>{{ t('index.feature_3.text') }}</p>
         </div>
+
+        <div class="feature-card">
+          <span class="feature-index">04</span>
+          <h3>{{ t('index.feature_4.title') }}</h3>
+          <p>{{ t('index.feature_4.text') }}</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-index">05</span>
+          <h3>{{ t('index.feature_5.title') }}</h3>
+          <p>{{ t('index.feature_5.text') }}</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-index">06</span>
+          <h3>{{ t('index.feature_6.title') }}</h3>
+          <p>{{ t('index.feature_6.text') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="section-head">
+        <span class="badge">{{ t('index.how.badge') }}</span>
+        <h2>{{ t('index.how.title') }}</h2>
+        <p>{{ t('index.how.subtitle') }}</p>
+      </div>
+
+      <div class="how-grid">
+        <div class="how-card">
+          <span class="how-number">1</span>
+          <h3>{{ t('index.how.step_1_title') }}</h3>
+          <p>{{ t('index.how.step_1_text') }}</p>
+        </div>
+        <div class="how-card">
+          <span class="how-number">2</span>
+          <h3>{{ t('index.how.step_2_title') }}</h3>
+          <p>{{ t('index.how.step_2_text') }}</p>
+        </div>
+        <div class="how-card">
+          <span class="how-number">3</span>
+          <h3>{{ t('index.how.step_3_title') }}</h3>
+          <p>{{ t('index.how.step_3_text') }}</p>
+        </div>
+        <div class="how-card">
+          <span class="how-number">4</span>
+          <h3>{{ t('index.how.step_4_title') }}</h3>
+          <p>{{ t('index.how.step_4_text') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="lecture-callout">
+        <div>
+          <span class="badge">{{ t('lecture.home_badge') }}</span>
+          <h2>{{ t('lecture.home_title') }}</h2>
+          <p>{{ t('lecture.home_text') }}</p>
+        </div>
+
+        <div>
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.lecture') }}" class="btn btn-primary">{{ t('lecture.open') }}</a>
+          {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ t('index.hero.primary_guest') }}</a>
+          {% endif %}
+        </div>
       </div>
     </div>
 
@@ -518,7 +661,7 @@
 
         <div>
           {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('index.cta.auth') }}</a>
+            <a href="{{ url_for('main.subtitles') }}" class="btn btn-primary">{{ t('index.cta.auth') }}</a>
           {% else %}
             <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ t('index.cta.guest') }}</a>
           {% endif %}

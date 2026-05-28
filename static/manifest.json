@@ -1,0 +1,16 @@
+{
+  "name": "SmartLecture",
+  "short_name": "SmartLecture",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060816",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,11 +1,51 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
-from flask_login import login_user, logout_user, login_required, current_user
+from urllib.parse import urljoin, urlparse
 
-from extensions import db, bcrypt, limiter
+from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required, login_user, logout_user
+
+from extensions import bcrypt, db, limiter
+from forms import DeleteAccountForm, LoginForm, RegistrationForm, SettingsForm
 from models import User
-from forms import RegistrationForm, LoginForm, SettingsForm
+from translations import DEFAULT_LANG, TRANSLATIONS
 
 bp = Blueprint("auth", __name__)
+
+
+def is_safe_url(target):
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in {"http", "https"} and ref_url.netloc == test_url.netloc
+
+
+def tr(key):
+    from flask import session
+
+    lang = session.get("lang", DEFAULT_LANG)
+    return TRANSLATIONS.get(lang, {}).get(key, TRANSLATIONS[DEFAULT_LANG].get(key, key))
+
+
+ERROR_KEYS = {
+    "Enter a username.": "validation.username_required",
+    "Username must be 3 to 40 characters long.": "validation.username_length",
+    "Use letters, numbers, dots, hyphens or underscores.": "validation.username_charset",
+    "Enter an email address.": "validation.email_required",
+    "Enter a valid email address.": "validation.email_invalid",
+    "Email is too long.": "validation.email_length",
+    "Enter a password.": "validation.password_required",
+    "Password must be 8 to 128 characters long.": "validation.password_length",
+    "Confirm your password.": "validation.confirm_required",
+    "Passwords do not match.": "validation.password_mismatch",
+    "New password must be 8 to 128 characters long.": "validation.new_password_length",
+    "Confirm the new password.": "validation.new_password_confirm",
+    "Enter your password.": "validation.password_required",
+}
+
+
+def localize_form_errors(form):
+    for field in form:
+        field.errors = [tr(ERROR_KEYS.get(error, error)) for error in field.errors]
 
 
 @bp.route("/register", methods=["GET", "POST"])
@@ -15,36 +55,30 @@ def register():
         return redirect(url_for("main.profile"))
 
     form = RegistrationForm()
-
     if form.validate_on_submit():
         username = form.username.data.strip()
         email = form.email.data.strip().lower()
-        password = form.password.data
 
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            flash("Имя пользователя уже занято", "danger")
+        if User.query.filter_by(username=username).first():
+            flash(tr("flash.username_taken"), "danger")
             return render_template("register.html", form=form)
 
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
-            flash("Этот email уже используется", "danger")
+        if User.query.filter_by(email=email).first():
+            flash(tr("flash.email_taken"), "danger")
             return render_template("register.html", form=form)
-
-        password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
         user = User(
             username=username,
             email=email,
-            password_hash=password_hash,
+            password_hash=bcrypt.generate_password_hash(form.password.data).decode("utf-8"),
         )
-
         db.session.add(user)
         db.session.commit()
 
-        flash("Аккаунт создан. Теперь войди в систему.", "success")
+        flash(tr("flash.account_created"), "success")
         return redirect(url_for("auth.login"))
 
+    localize_form_errors(form)
     return render_template("register.html", form=form)
 
 
@@ -55,31 +89,31 @@ def login():
         return redirect(url_for("main.profile"))
 
     form = LoginForm()
-
     if form.validate_on_submit():
         username = form.username.data.strip()
-        password = form.password.data
-
         user = User.query.filter_by(username=username).first()
 
-        if not user or not bcrypt.check_password_hash(user.password_hash, password):
-            flash("Неверное имя пользователя или пароль", "danger")
+        if not user or not bcrypt.check_password_hash(user.password_hash, form.password.data):
+            flash(tr("flash.invalid_login"), "danger")
             return render_template("login.html", form=form)
 
         login_user(user, remember=True)
-        flash("Добро пожаловать в VoiceFlow", "success")
+        flash(tr("flash.welcome"), "success")
 
         next_page = request.args.get("next")
-        return redirect(next_page or url_for("main.profile"))
+        if not is_safe_url(next_page):
+            next_page = url_for("main.profile")
+        return redirect(next_page)
 
+    localize_form_errors(form)
     return render_template("login.html", form=form)
 
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
-    flash("Вы вышли из аккаунта", "info")
+    flash(tr("flash.signed_out"), "info")
     return redirect(url_for("main.index"))
 
 
@@ -87,6 +121,7 @@ def logout():
 @login_required
 def settings():
     form = SettingsForm(obj=current_user)
+    delete_form = DeleteAccountForm()
 
     if request.method == "GET":
         form.username.data = current_user.username
@@ -95,47 +130,53 @@ def settings():
     if form.validate_on_submit():
         username = form.username.data.strip()
         email = form.email.data.strip().lower()
-        password = (form.password.data or "").strip()
+        new_password = (form.password.data or "").strip()
+        current_password = (form.current_password.data or "").strip()
 
-        existing_user = User.query.filter(
-            User.username == username,
-            User.id != current_user.id
-        ).first()
-        if existing_user:
-            flash("Имя пользователя уже занято", "danger")
-            return render_template("settings.html", form=form)
+        if User.query.filter(User.username == username, User.id != current_user.id).first():
+            flash(tr("flash.username_taken"), "danger")
+            return render_template("settings.html", form=form, delete_form=delete_form)
 
-        existing_email = User.query.filter(
-            User.email == email,
-            User.id != current_user.id
-        ).first()
-        if existing_email:
-            flash("Этот email уже используется", "danger")
-            return render_template("settings.html", form=form)
+        if User.query.filter(User.email == email, User.id != current_user.id).first():
+            flash(tr("flash.email_taken"), "danger")
+            return render_template("settings.html", form=form, delete_form=delete_form)
+
+        if new_password:
+            if not current_password or not bcrypt.check_password_hash(
+                current_user.password_hash,
+                current_password,
+            ):
+                flash(tr("flash.current_password_required"), "danger")
+                return render_template("settings.html", form=form, delete_form=delete_form)
+            current_user.password_hash = bcrypt.generate_password_hash(new_password).decode("utf-8")
 
         current_user.username = username
         current_user.email = email
-
-        if password:
-            current_user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-
         db.session.commit()
-        flash("Настройки сохранены", "success")
+
+        flash(tr("flash.settings_saved"), "success")
         return redirect(url_for("auth.settings"))
 
-    return render_template("settings.html", form=form)
+    localize_form_errors(form)
+    return render_template("settings.html", form=form, delete_form=delete_form)
 
 
 @bp.route("/delete-account", methods=["POST"])
 @login_required
 def delete_account():
-    user_id = current_user.id
-    logout_user()
+    form = DeleteAccountForm()
+    if not form.validate_on_submit() or not bcrypt.check_password_hash(
+        current_user.password_hash,
+        form.password.data,
+    ):
+        flash(tr("flash.delete_password_required"), "danger")
+        return redirect(url_for("auth.settings"))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, current_user.id)
+    logout_user()
     if user:
         db.session.delete(user)
         db.session.commit()
 
-    flash("Аккаунт удален", "info")
+    flash(tr("flash.account_deleted"), "info")
     return redirect(url_for("main.index"))

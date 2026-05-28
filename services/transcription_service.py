@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import timezone
 
 from extensions import db
-from models import Transcription, UserStats, Favorite
+from models import Transcription, UserStats, Favorite, utc_now
+from sqlalchemy import or_
 
 
 class TranscriptionService:
@@ -11,8 +12,11 @@ class TranscriptionService:
         text,
         language="ru-RU",
         duration=0,
-        source="demo",
-        summary_data=None
+        source="speech",
+        summary_data=None,
+        title=None,
+        tags=None,
+        folder=None,
     ):
         clean_text = (text or "").strip()
         if not clean_text:
@@ -40,16 +44,24 @@ class TranscriptionService:
             if isinstance(raw_keywords, list):
                 keywords = [str(item).strip() for item in raw_keywords if str(item).strip()]
 
+        generated_title = TranscriptionService.generate_title(clean_text, summary)
+        now = utc_now()
+
         transcription = Transcription(
             user_id=user_id,
+            title=(title or generated_title).strip()[:160],
             text=clean_text,
             summary=summary,
             summary_type=summary_type,
             keywords_json=keywords,
+            tags_json=tags or [],
+            folder=(folder or "").strip() or None,
             language=language or "ru-RU",
             duration=max(int(duration or 0), 0),
-            source=source or "demo",
+            source=source or "speech",
             word_count=word_count,
+            created_at=now,
+            updated_at=now,
         )
 
         db.session.add(transcription)
@@ -67,7 +79,7 @@ class TranscriptionService:
         stats.total_time += transcription.duration
         stats.total_words += word_count
 
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = now.astimezone(timezone.utc).strftime("%Y-%m-%d")
         daily_stats = dict(stats.daily_stats or {})
         daily_stats[today] = daily_stats.get(today, 0) + 1
         stats.daily_stats = daily_stats
@@ -83,12 +95,24 @@ class TranscriptionService:
         search="",
         language="",
         source="",
-        favorites_only=False
+        folder="",
+        tag="",
+        favorites_only=False,
+        pinned_only=False,
     ):
         query = Transcription.query.filter_by(user_id=user_id)
 
         if search:
-            query = query.filter(Transcription.text.ilike(f"%{search.strip()}%"))
+            pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    Transcription.title.ilike(pattern),
+                    Transcription.text.ilike(pattern),
+                    Transcription.summary.ilike(pattern),
+                    Transcription.keywords_json.cast(db.String).ilike(pattern),
+                    Transcription.tags_json.cast(db.String).ilike(pattern),
+                )
+            )
 
         if language:
             query = query.filter(Transcription.language == language)
@@ -96,11 +120,20 @@ class TranscriptionService:
         if source:
             query = query.filter(Transcription.source == source)
 
+        if folder:
+            query = query.filter(Transcription.folder == folder)
+
+        if tag:
+            query = query.filter(Transcription.tags_json.cast(db.String).ilike(f"%{tag.strip()}%"))
+
         if favorites_only:
             query = query.join(Favorite, Favorite.transcription_id == Transcription.id)
             query = query.filter(Favorite.user_id == user_id)
 
-        query = query.order_by(Transcription.created_at.desc())
+        if pinned_only:
+            query = query.filter(Transcription.is_pinned.is_(True))
+
+        query = query.order_by(Transcription.is_pinned.desc(), Transcription.created_at.desc())
 
         return query.paginate(page=page, per_page=per_page, error_out=False)
 
@@ -169,6 +202,57 @@ class TranscriptionService:
         ).first()
 
         return refreshed is not None
+
+    @staticmethod
+    def update_transcription(user_id, transcription_id, **fields):
+        transcription = Transcription.query.filter_by(
+            id=transcription_id,
+            user_id=user_id,
+        ).first()
+        if not transcription:
+            return None
+
+        if "title" in fields:
+            title = (fields.get("title") or "").strip()
+            if title:
+                transcription.title = title[:160]
+        if "tags" in fields and isinstance(fields.get("tags"), list):
+            transcription.tags_json = [
+                str(tag).strip()[:40]
+                for tag in fields["tags"][:12]
+                if str(tag).strip()
+            ]
+        if "folder" in fields:
+            transcription.folder = (fields.get("folder") or "").strip()[:80] or None
+        if "is_pinned" in fields:
+            transcription.is_pinned = bool(fields.get("is_pinned"))
+        if "summary_data" in fields and isinstance(fields.get("summary_data"), dict):
+            summary_data = fields["summary_data"]
+            transcription.summary = (
+                summary_data.get("summary")
+                or summary_data.get("structured")
+                or transcription.summary
+            )
+            transcription.summary_type = summary_data.get("summary_type") or transcription.summary_type
+            keywords = summary_data.get("keywords")
+            if isinstance(keywords, list):
+                transcription.keywords_json = [
+                    str(item).strip()
+                    for item in keywords[:12]
+                    if str(item).strip()
+                ]
+
+        db.session.commit()
+        return transcription
+
+    @staticmethod
+    def generate_title(text, summary=None):
+        base = (summary or text or "").strip().replace("\n", " ")
+        words = base.split()
+        if not words:
+            return "New recording"
+        title = " ".join(words[:8])
+        return title[:150]
 
     @staticmethod
     def get_user_totals(user_id):

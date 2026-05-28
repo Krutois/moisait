@@ -1,22 +1,38 @@
-from flask import Flask, session, redirect, url_for, request
-from flask_admin import Admin, AdminIndexView
-from flask_admin.contrib.sqla import ModelView
-from flask_login import current_user
-
-from config import DevelopmentConfig, ProductionConfig
-from extensions import db, login_manager, limiter, csrf, migrate, bcrypt
-from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
+import logging
 import os
 
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-def create_app():
+from admin import init_admin
+from config import DevelopmentConfig, ProductionConfig
+from extensions import bcrypt, csrf, db, limiter, login_manager, migrate
+from translations import DEFAULT_LANG, SUPPORTED_LANGS, TRANSLATIONS
+
+
+def create_app(config_overrides=None):
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1,
+        x_proto=1,
+        x_host=1,
+        x_port=1,
+        x_prefix=1,
+    )
 
     env = os.getenv("FLASK_ENV", "development").lower()
     if env == "production":
+        ProductionConfig.init_app()
         app.config.from_object(ProductionConfig)
     else:
         app.config.from_object(DevelopmentConfig)
+
+    if config_overrides:
+        app.config.update(config_overrides)
+
+    logging.basicConfig(level=logging.INFO)
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -26,17 +42,29 @@ def create_app():
     bcrypt.init_app(app)
 
     login_manager.login_view = "auth.login"
-    login_manager.login_message = "Сначала войдите в аккаунт"
+    login_manager.login_message = "Please sign in to continue."
     login_manager.login_message_category = "warning"
 
-    from models import User, Transcription, Favorite, UserStats
+    from models import User
 
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            return User.query.get(int(user_id))
+            return db.session.get(User, int(user_id))
         except (TypeError, ValueError):
             return None
+
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        lang = session.get("lang", DEFAULT_LANG)
+        message = TRANSLATIONS.get(lang, {}).get(
+            "flash.login_required",
+            TRANSLATIONS[DEFAULT_LANG].get("flash.login_required", "Please sign in to continue."),
+        )
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": message}), 401
+        flash(message, "warning")
+        return redirect(url_for("auth.login", next=request.full_path))
 
     @app.context_processor
     def inject_i18n():
@@ -48,78 +76,65 @@ def create_app():
             lang = get_lang()
             return TRANSLATIONS.get(lang, {}).get(
                 key,
-                TRANSLATIONS[DEFAULT_LANG].get(key, key)
+                TRANSLATIONS[DEFAULT_LANG].get(key, key),
             )
 
         return {
             "t": t,
             "current_lang": get_lang(),
             "supported_langs": SUPPORTED_LANGS,
+            "support_email": app.config.get("SUPPORT_EMAIL"),
         }
 
+    from routes.api import bp as api_bp
     from routes.auth import bp as auth_bp
     from routes.main import bp as main_bp
-    from routes.api import bp as api_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
 
-    def is_admin_user():
-        allowed_emails = {
-            email.strip().lower()
-            for email in os.getenv("ADMIN_EMAILS", "").split(",")
-            if email.strip()
-        }
-        return (
-            current_user.is_authenticated
-            and current_user.email
-            and current_user.email.lower() in allowed_emails
-        )
+    import cli
 
-    class SecureAdminIndexView(AdminIndexView):
-        def is_accessible(self):
-            return is_admin_user()
+    cli.init_app(app)
 
-        def inaccessible_callback(self, name, **kwargs):
-            return redirect(url_for("auth.login", next=request.url))
+    init_admin(app)
 
-    class SecureModelView(ModelView):
-        def is_accessible(self):
-            return is_admin_user()
-
-        def inaccessible_callback(self, name, **kwargs):
-            return redirect(url_for("auth.login", next=request.url))
-
-    admin = Admin(
-        app,
-        name="VoiceFlow Admin",
-        index_view=SecureAdminIndexView(url="/admin")
-    )
-
-    admin.add_view(SecureModelView(User, db.session))
-    admin.add_view(SecureModelView(Transcription, db.session))
-    admin.add_view(SecureModelView(Favorite, db.session))
-    admin.add_view(SecureModelView(UserStats, db.session))
-
-    with app.app_context():
-        db.create_all()
+    if app.config.get("AUTO_CREATE_DB", True):
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as exc:
+                app.logger.warning("Database auto-create skipped: %s", exc)
 
     @app.errorhandler(404)
     def not_found(error):
-        return (
-            "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>"
-            "404 — Page not found"
-            "</h1>"
-        ), 404
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "Not found"}), 404
+        return render_template("404.html"), 404
 
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
-        return (
-            "<h1 style='color:white;background:#0b1020;padding:40px;font-family:Inter'>"
-            "500 — Internal server error"
-            "</h1>"
-        ), 500
+        app.logger.exception("Unhandled server error")
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "Internal server error"}), 500
+        return render_template("500.html"), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        if isinstance(error, HTTPException):
+            if request.path.startswith("/api/"):
+                return jsonify({"ok": False, "error": error.description}), error.code
+            return error
+        return internal_error(error)
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=()")
+        return response
 
     return app

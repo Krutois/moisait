@@ -362,7 +362,7 @@
 
         <div>
           {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.demo') }}" class="btn btn-primary">{{ t('about.cta_auth') }}</a>
+            <a href="{{ url_for('main.workspace') }}" class="btn btn-primary">{{ t('about.cta_auth') }}</a>
           {% else %}
             <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ t('about.cta_guest') }}</a>
           {% endif %}

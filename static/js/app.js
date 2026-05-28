@@ -1,5 +1,21 @@
 (() => {
-  "use strict";
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+  const nativeFetch = window.fetch.bind(window);
+
+  window.fetch = (input, init = {}) => {
+    const options = { ...init };
+    const method = String(options.method || "GET").toUpperCase();
+
+    if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method) && csrfToken) {
+      const headers = new Headers(options.headers || {});
+      if (!headers.has("X-CSRFToken")) {
+        headers.set("X-CSRFToken", csrfToken);
+      }
+      options.headers = headers;
+    }
+
+    return nativeFetch(input, options);
+  };
 
   function ready(fn) {
     if (document.readyState !== "loading") {
@@ -21,11 +37,9 @@
 
   function showToast(message, type = "info", duration = 2600) {
     const container = createToastContainer();
-
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
-
     container.appendChild(toast);
 
     requestAnimationFrame(() => {
@@ -39,135 +53,166 @@
   }
 
   function autoHideFlashes() {
-    const flashes = document.querySelectorAll(".flash");
-    flashes.forEach((flash, index) => {
+    document.querySelectorAll(".flash").forEach((flash, index) => {
       setTimeout(() => {
         flash.style.opacity = "0";
         flash.style.transform = "translateY(-6px)";
-        flash.style.transition = "all .25s ease";
         setTimeout(() => flash.remove(), 250);
       }, 3200 + index * 250);
     });
   }
 
-  function setupCopyButtons() {
-    const copyButtons = document.querySelectorAll("[data-copy-text]");
-
-    copyButtons.forEach((button) => {
-      button.addEventListener("click", async () => {
-        const text = button.dataset.copyText || "";
-        if (!text.trim()) {
-          showToast("Нет текста для копирования", "warning");
-          return;
-        }
-
-        try {
-          await navigator.clipboard.writeText(text);
-          showToast("Скопировано", "success");
-        } catch (error) {
-          console.error(error);
-          showToast("Не удалось скопировать", "error");
-        }
-      });
-    });
-  }
-
   function setupConfirmActions() {
-    const dangerForms = document.querySelectorAll("[data-confirm]");
-    dangerForms.forEach((element) => {
-      element.addEventListener("submit", (event) => {
-        const message = element.dataset.confirm || "Вы уверены?";
-        const ok = window.confirm(message);
-        if (!ok) {
+    document.querySelectorAll("[data-confirm]").forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        const message = form.dataset.confirm || window.SmartLecture_I18N?.confirmDefault || "Are you sure?";
+        if (!window.confirm(message)) {
           event.preventDefault();
         }
       });
     });
   }
 
-  function setupTextareaAutoResize() {
-    const textareas = document.querySelectorAll("textarea.auto-resize");
-    textareas.forEach((textarea) => {
-      const resize = () => {
-        textarea.style.height = "auto";
-        textarea.style.height = `${textarea.scrollHeight}px`;
-      };
+  function setupMobileMenu() {
+    const header = document.querySelector(".site-header");
+    const button = document.getElementById("mobileMenuBtn");
 
-      textarea.addEventListener("input", resize);
-      resize();
+    if (!header || !button) return;
+
+    function closeMenu() {
+      header.classList.remove("menu-open");
+      document.body.classList.remove("menu-locked");
+    }
+
+    function toggleMenu() {
+      header.classList.toggle("menu-open");
+      document.body.classList.toggle("menu-locked", header.classList.contains("menu-open"));
+    }
+
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleMenu();
     });
-  }
 
-  function setupSmoothAnchors() {
-    const links = document.querySelectorAll('a[href^="#"]');
-    links.forEach((link) => {
-      link.addEventListener("click", (event) => {
-        const id = link.getAttribute("href");
-        if (!id || id === "#") return;
-
-        const target = document.querySelector(id);
-        if (!target) return;
-
-        event.preventDefault();
-        target.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      });
+    document.querySelectorAll(".nav-links a, .nav-actions a").forEach((link) => {
+      link.addEventListener("click", closeMenu);
     });
-  }
 
-  function setupInputFocusState() {
-    const fields = document.querySelectorAll(".input, .editor, select");
-    fields.forEach((field) => {
-      field.addEventListener("focus", () => {
-        field.closest(".form-group")?.classList.add("is-focused");
-      });
-
-      field.addEventListener("blur", () => {
-        field.closest(".form-group")?.classList.remove("is-focused");
-      });
-    });
-  }
-
-  function setupStatCounter() {
-    const counters = document.querySelectorAll("[data-counter]");
-    counters.forEach((counter) => {
-      const target = Number(counter.dataset.counter || 0);
-      const duration = 900;
-      const start = 0;
-      const startTime = performance.now();
-
-      function update(now) {
-        const progress = Math.min((now - startTime) / duration, 1);
-        const value = Math.floor(start + (target - start) * progress);
-        counter.textContent = value.toLocaleString();
-
-        if (progress < 1) {
-          requestAnimationFrame(update);
-        } else {
-          counter.textContent = target.toLocaleString();
-        }
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeMenu();
       }
+    });
 
-      requestAnimationFrame(update);
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 860) {
+        closeMenu();
+      }
     });
   }
 
-  function exposeUIHelpers() {
-    window.VoiceFlowUI = {
-      toast: showToast
-    };
+  function setupAccountMenu() {
+    const menu = document.querySelector(".account-menu");
+    if (!menu) return;
+
+    document.addEventListener("click", (event) => {
+      if (!menu.contains(event.target)) {
+        menu.removeAttribute("open");
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.removeAttribute("open");
+      }
+    });
   }
+
+  function setupPasswordToggles() {
+    document.querySelectorAll('input[type="password"]').forEach((input) => {
+      if (input.dataset.toggleReady === "1") return;
+      input.dataset.toggleReady = "1";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "password-toggle";
+      button.textContent = window.SmartLecture_I18N?.showPassword || "Show";
+      button.addEventListener("click", () => {
+        const shown = input.type === "text";
+        input.type = shown ? "password" : "text";
+        button.textContent = shown
+          ? (window.SmartLecture_I18N?.showPassword || "Show")
+          : (window.SmartLecture_I18N?.hidePassword || "Hide");
+      });
+      input.insertAdjacentElement("afterend", button);
+    });
+  }
+
+  function registerServiceWorker() {
+    const swUrl = window.SmartLecture_CONFIG?.serviceWorkerUrl;
+    if ("serviceWorker" in navigator && swUrl) {
+      navigator.serviceWorker.register(swUrl).catch(() => {});
+    }
+  }
+
+  function setupNetworkState() {
+    const offline = window.SmartLecture_I18N?.offline || "No internet connection";
+    const online = window.SmartLecture_I18N?.online || "Connection restored";
+    window.addEventListener("offline", () => showToast(offline, "warning", 3600));
+    window.addEventListener("online", () => showToast(online, "success", 2200));
+  }
+
+  function applyAccessibilitySettings(settings = {}) {
+    document.body.classList.toggle("access-text-large", settings.textSize === "large");
+    document.body.classList.toggle("access-text-xl", settings.textSize === "xl");
+    document.body.classList.toggle("access-high-contrast", settings.contrast === "high");
+    document.body.classList.toggle("access-light", settings.theme === "light");
+    document.body.classList.toggle("access-reduce-motion", settings.motion === "reduced");
+  }
+
+  function getAccessibilitySettings() {
+    try {
+      return JSON.parse(localStorage.getItem("smartlecture_accessibility") || "{}");
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveAccessibilitySettings(settings) {
+    localStorage.setItem("smartlecture_accessibility", JSON.stringify(settings));
+    applyAccessibilitySettings(settings);
+  }
+
+  function setupAccessibilitySettings() {
+    const settings = getAccessibilitySettings();
+    applyAccessibilitySettings(settings);
+
+    document.querySelectorAll("[data-access-setting]").forEach((control) => {
+      const key = control.dataset.accessSetting;
+      if (settings[key]) {
+        control.value = settings[key];
+      }
+      control.addEventListener("change", () => {
+        const next = { ...getAccessibilitySettings(), [key]: control.value };
+        saveAccessibilitySettings(next);
+        if (next.visualAlerts !== "off") {
+          showToast(window.SmartLecture_I18N?.accessibilitySaved || "Accessibility settings saved", "success", 1800);
+        }
+      });
+    });
+  }
+
+  window.SmartLectureUI = {
+    toast: showToast,
+  };
 
   ready(() => {
     autoHideFlashes();
-    setupCopyButtons();
     setupConfirmActions();
-    setupTextareaAutoResize();
-    setupSmoothAnchors();
-    setupInputFocusState();
-    setupStatCounter();
-    exposeUIHelpers();
+    setupMobileMenu();
+    setupAccountMenu();
+    setupPasswordToggles();
+    setupNetworkState();
+    setupAccessibilitySettings();
+    registerServiceWorker();
   });
 })();

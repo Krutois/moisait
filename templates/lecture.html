@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+{% block title %}{{ t('lecture.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .lecture-page { display: grid; gap: 16px; }
+  .lecture-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; }
+  .lecture-head h1 { margin: 12px 0 8px; font-size: clamp(34px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.04em; }
+  .lecture-head p { margin: 0; max-width: 880px; color: var(--muted); line-height: 1.72; }
+  .lecture-status { min-width: 220px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #dbe7ff; font-weight: 800; text-align: center; }
+  .lecture-status.recording { color: #bbf7d0; border-color: rgba(34,197,94,0.34); background: rgba(34,197,94,0.15); }
+  .lecture-dot { width: 12px; height: 12px; display: inline-block; margin-right: 8px; border-radius: 999px; background: #64748b; vertical-align: -1px; }
+  .lecture-status.recording .lecture-dot { background: #22c55e; box-shadow: 0 0 0 8px rgba(34,197,94,0.13); animation: lectureDot 1.4s ease-in-out infinite; }
+  @keyframes lectureDot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .72; } }
+
+  .lecture-role-grid, .lecture-support-grid, .lecture-quality-grid, .lecture-summary-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .lecture-role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lecture-support-grid { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .lecture-quality-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lecture-summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lecture-card { padding: 18px; border-radius: 20px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.075); }
+  .lecture-card h2, .lecture-card h3 { margin: 0 0 10px; font-size: 20px; }
+  .lecture-card p { margin: 0; color: var(--muted); line-height: 1.65; }
+  .role-btn { min-height: 86px; white-space: normal; text-align: left; justify-content: flex-start; padding: 16px; }
+  .role-btn.active { border-color: rgba(20,184,166,0.36); background: rgba(20,184,166,0.13); color: #ccfbf1; }
+  .onboarding-list { display: grid; gap: 10px; margin-top: 14px; }
+  .onboarding-step { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; color: #dbe7ff; line-height: 1.55; }
+  .onboarding-step span { width: 34px; height: 34px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-2)); font-weight: 850; }
+
+  .qr-wrap { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+  .qr-box { width: 132px; aspect-ratio: 1; border-radius: 18px; padding: 10px; background: #f8fafc; box-shadow: inset 0 0 0 1px rgba(15,23,42,.12); display: grid; place-items: center; }
+  .qr-box[hidden] { display: none; }
+  .qr-box img { width: 100%; height: 100%; display: block; }
+  .qr-link { margin-top: 8px; color: #dbe7ff; font-size: 13px; word-break: break-all; }
+  .qr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .qr-error { margin-top: 10px; color: #fecaca; font-size: 13px; font-weight: 700; }
+
+  .quality-item { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); color: #dbe7ff; font-weight: 750; }
+  .quality-dot { width: 11px; height: 11px; border-radius: 999px; background: #64748b; flex: 0 0 auto; }
+  .quality-item.good .quality-dot { background: #22c55e; box-shadow: 0 0 0 6px rgba(34,197,94,0.12); }
+  .quality-item.error .quality-dot { background: #ef4444; box-shadow: 0 0 0 6px rgba(239,68,68,0.12); }
+
+  .lecture-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .lecture-metric { min-height: 58px; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.075); display: grid; gap: 4px; }
+  .lecture-metric strong { font-size: 22px; letter-spacing: -0.03em; }
+  .lecture-metric span { color: var(--muted); font-size: 13px; font-weight: 700; }
+  .lecture-controls { display: grid; grid-template-columns: repeat(8, minmax(110px, 1fr)); gap: 10px; }
+  .lecture-controls .btn, .lecture-settings select { width: 100%; min-height: 54px; }
+  .lecture-settings { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .lecture-setting { padding: 14px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); display: grid; gap: 8px; }
+  .lecture-setting label { color: #dbe7ff; font-weight: 800; font-size: 13px; }
+  .lecture-screen { min-height: min(62vh, 680px); padding: clamp(22px, 5vw, 58px); border-radius: 18px; background: #07111f; border: 2px solid rgba(255,255,255,0.13); color: #ffffff; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.32; font-weight: 850; white-space: pre-wrap; word-break: break-word; }
+  .lecture-screen.size-small { font-size: clamp(28px, 4vw, 44px); }
+  .lecture-screen.size-medium { font-size: clamp(36px, 5.5vw, 62px); }
+  .lecture-screen.size-large { font-size: clamp(46px, 7.5vw, 84px); }
+  .lecture-screen.size-xl { font-size: clamp(56px, 9vw, 108px); }
+  .lecture-screen.high-contrast { background: #000000; color: #ffff00; border-color: #ffffff; }
+  .lecture-screen.bg-dark { background: #07111f; color: #ffffff; }
+  .lecture-screen.bg-black { background: #000000; color: #ffffff; }
+  .lecture-screen.bg-blue { background: #05264a; color: #f8fafc; }
+  .lecture-screen.bg-light { background: #f8fafc; color: #0f172a; border-color: #0f172a; }
+  .lecture-screen:fullscreen { min-height: 100vh; border-radius: 0; padding: 6vw; }
+  .lecture-export-links { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+  .lecture-export-links[hidden], .lecture-dashboard[hidden], .lecture-notes[hidden] { display: none; }
+  .shortcut-row, .keyword-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .shortcut, .keyword-chip { padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.08); color: #dbe7ff; font-size: 13px; font-weight: 750; }
+  .lecture-dashboard { padding: 20px; border-radius: 22px; background: rgba(20,184,166,0.08); border: 1px solid rgba(20,184,166,0.18); display: grid; gap: 16px; }
+  .summary-box { min-height: 120px; padding: 16px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); color: #eef4ff; line-height: 1.7; white-space: pre-wrap; }
+
+  @media (max-width: 1180px) {
+    .lecture-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .lecture-quality-grid, .lecture-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 860px) {
+    .lecture-head, .lecture-role-grid, .lecture-support-grid, .lecture-settings, .lecture-controls, .lecture-quality-grid, .lecture-summary-grid { grid-template-columns: 1fr; }
+    .lecture-status { min-width: 0; }
+    .qr-wrap { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 620px) {
+    .lecture-metrics { grid-template-columns: 1fr; }
+    .lecture-screen { min-height: 56vh; border-radius: 16px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container lecture-page">
+    <div class="lecture-head">
+      <div>
+        <span class="badge">{{ t('lecture.badge') }}</span>
+        <h1>{{ t('lecture.title') }}</h1>
+        <p>{{ t('lecture.subtitle') }}</p>
+      </div>
+      <div class="lecture-status" id="lectureStatus" aria-live="polite"><span class="lecture-dot" aria-hidden="true"></span>{{ t('lecture.status_ready') }}</div>
+    </div>
+
+    <div class="lecture-role-grid" aria-label="{{ t('lecture.role_title') }}">
+      <button class="btn btn-soft role-btn active" type="button" data-role="student">{{ t('lecture.role_student') }}</button>
+      <button class="btn btn-soft role-btn" type="button" data-role="teacher">{{ t('lecture.role_teacher') }}</button>
+    </div>
+
+    <div class="lecture-support-grid">
+      <div class="lecture-card">
+        <h2>{{ t('lecture.connect_title') }}</h2>
+        <div class="qr-wrap" id="lectureQrWrap">
+          <div class="qr-box" id="lectureQrBox" hidden><img id="lectureQrImage" alt="{{ t('lecture.qr_alt') }}"></div>
+          <div>
+            <p>{{ t('lecture.connect_text') }}</p>
+            <a class="qr-link" id="lectureShareLink" href="#" target="_blank" rel="noopener"></a>
+            <div class="qr-actions">
+              <button class="btn btn-soft" id="lectureCopyLinkBtn" type="button" disabled>{{ t('lecture.copy_link') }}</button>
+              <a class="btn btn-outline" id="lectureOpenQrBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">{{ t('lecture.open_qr') }}</a>
+            </div>
+            <div class="qr-error" id="lectureQrError" hidden></div>
+          </div>
+        </div>
+      </div>
+      <div class="lecture-card">
+        <h2>{{ t('lecture.onboarding_title') }}</h2>
+        <div class="onboarding-list">
+          <div class="onboarding-step"><span>1</span>{{ t('lecture.onboarding_1') }}</div>
+          <div class="onboarding-step"><span>2</span>{{ t('lecture.onboarding_2') }}</div>
+          <div class="onboarding-step"><span>3</span>{{ t('lecture.onboarding_3') }}</div>
+          <div class="onboarding-step"><span>4</span>{{ t('lecture.onboarding_4') }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lecture-quality-grid" aria-label="{{ t('lecture.quality_title') }}">
+      <div class="quality-item" id="qualityMic"><span class="quality-dot"></span>{{ t('lecture.quality_mic') }}</div>
+      <div class="quality-item" id="qualityRecording"><span class="quality-dot"></span>{{ t('lecture.quality_recording') }}</div>
+      <div class="quality-item" id="qualitySound"><span class="quality-dot"></span>{{ t('lecture.quality_sound') }}</div>
+      <div class="quality-item" id="qualityRecognition"><span class="quality-dot"></span>{{ t('lecture.quality_recognition') }}</div>
+    </div>
+
+    <div class="lecture-metrics" aria-label="{{ t('lecture.metrics_label') }}">
+      <div class="lecture-metric"><strong id="lectureTimer">00:00</strong><span>{{ t('lecture.timer') }}</span></div>
+      <div class="lecture-metric"><strong id="lectureWords">0</strong><span>{{ t('lecture.words') }}</span></div>
+    </div>
+
+    <div class="lecture-controls" role="toolbar" aria-label="{{ t('lecture.controls') }}">
+      <button id="lectureStartBtn" class="btn btn-primary" type="button">{{ t('lecture.start') }}</button>
+      <button id="lectureStopBtn" class="btn btn-soft" type="button" disabled>{{ t('lecture.stop') }}</button>
+      <button id="lectureSaveBtn" class="btn btn-soft" type="button">{{ t('lecture.save') }}</button>
+      <button id="lectureSummaryBtn" class="btn btn-soft" type="button">{{ t('lecture.create_summary') }}</button>
+      <button id="lectureExportBtn" class="btn btn-soft" type="button" disabled>{{ t('lecture.export') }}</button>
+      <button id="lectureFullscreenBtn" class="btn btn-soft" type="button">{{ t('lecture.fullscreen') }}</button>
+      <button id="lectureDemoBtn" class="btn btn-outline" type="button">{{ t('lecture.demo') }}</button>
+      <button id="lectureClearBtn" class="btn btn-danger" type="button">{{ t('lecture.clear') }}</button>
+    </div>
+
+    <div id="lectureExportLinks" class="lecture-export-links" hidden aria-label="{{ t('lecture.export_hint') }}">
+      <a id="lectureTxt" class="btn btn-secondary" href="#">{{ t('lecture.export_txt') }}</a>
+      <a id="lecturePdf" class="btn btn-secondary" href="#">{{ t('lecture.export_pdf') }}</a>
+      <a id="lectureDocx" class="btn btn-secondary" href="#">{{ t('lecture.export_docx') }}</a>
+    </div>
+
+    <div class="lecture-settings">
+      <div class="lecture-setting"><label for="lectureLangSelect">{{ t('nav.language') }}</label><select id="lectureLangSelect"><option value="ru-RU" {% if current_lang == 'ru' %}selected{% endif %}>{{ t('workspace.lang_ru') }}</option><option value="kk-KZ" {% if current_lang == 'kk' %}selected{% endif %}>{{ t('workspace.lang_kk') }}</option><option value="en-US" {% if current_lang == 'en' %}selected{% endif %}>{{ t('workspace.lang_en') }}</option></select></div>
+      <div class="lecture-setting"><label for="lectureFontSelect">{{ t('accessibility.text_size') }}</label><select id="lectureFontSelect"><option value="small">{{ t('accessibility.size_small') }}</option><option value="medium" selected>{{ t('accessibility.size_medium') }}</option><option value="large">{{ t('accessibility.size_large') }}</option><option value="xl">{{ t('accessibility.size_xl') }}</option></select></div>
+      <div class="lecture-setting"><label for="lectureContrastSelect">{{ t('accessibility.contrast') }}</label><select id="lectureContrastSelect"><option value="normal">{{ t('lecture.contrast_normal') }}</option><option value="high">{{ t('lecture.contrast_high') }}</option></select></div>
+      <div class="lecture-setting"><label for="lectureBgSelect">{{ t('accessibility.caption_bg') }}</label><select id="lectureBgSelect"><option value="dark">{{ t('accessibility.bg_dark') }}</option><option value="black">{{ t('accessibility.bg_black') }}</option><option value="blue">{{ t('accessibility.bg_blue') }}</option><option value="light">{{ t('accessibility.bg_light') }}</option></select></div>
+    </div>
+
+    <div id="lectureScreen" class="lecture-screen size-medium bg-dark" tabindex="0" aria-live="polite" aria-label="{{ t('lecture.screen_label') }}">{{ t('lecture.empty') }}</div>
+
+    <div class="lecture-card">
+      <h2>{{ t('lecture.shortcuts_title') }}</h2>
+      <p>{{ t('lecture.shortcuts_text') }}</p>
+      <div class="shortcut-row">
+        <span class="shortcut">Space — {{ t('lecture.shortcut_record') }}</span>
+        <span class="shortcut">Ctrl+S — {{ t('lecture.shortcut_save') }}</span>
+        <span class="shortcut">F — {{ t('lecture.shortcut_fullscreen') }}</span>
+        <span class="shortcut">Ctrl+C — {{ t('lecture.shortcut_copy') }}</span>
+      </div>
+    </div>
+
+    <div class="lecture-dashboard" id="lectureDashboard" hidden>
+      <div class="card-header">
+        <div><span class="badge">{{ t('lecture.dashboard_badge') }}</span><h2>{{ t('lecture.dashboard_title') }}</h2></div>
+        <div class="toolbar">
+          <button class="btn btn-primary" type="button" id="dashboardSaveBtn">{{ t('lecture.save') }}</button>
+          <button class="btn btn-soft" type="button" id="dashboardSummaryBtn">{{ t('lecture.create_summary') }}</button>
+        </div>
+      </div>
+      <div class="lecture-summary-grid">
+        <div class="lecture-metric"><strong id="dashDuration">00:00</strong><span>{{ t('lecture.timer') }}</span></div>
+        <div class="lecture-metric"><strong id="dashWords">0</strong><span>{{ t('lecture.words') }}</span></div>
+        <div class="lecture-metric"><strong id="dashDate">-</strong><span>{{ t('lecture.dashboard_date') }}</span></div>
+        <div class="lecture-metric"><strong id="dashLang">-</strong><span>{{ t('nav.language') }}</span></div>
+      </div>
+    </div>
+
+    <div class="lecture-card lecture-notes" id="lectureNotes" hidden>
+      <div class="card-header">
+        <div><span class="badge">{{ t('lecture.summary_badge') }}</span><h2>{{ t('lecture.summary_title') }}</h2></div>
+      </div>
+      <div class="lecture-summary-grid">
+        <div><h3>{{ t('lecture.summary_short') }}</h3><div class="summary-box" id="summaryShort"></div></div>
+        <div><h3>{{ t('lecture.summary_points') }}</h3><div class="summary-box" id="summaryPoints"></div></div>
+        <div><h3>{{ t('lecture.summary_keywords') }}</h3><div class="summary-box"><div class="keyword-row" id="keywordRow"></div></div></div>
+        <div><h3>{{ t('lecture.summary_questions') }}</h3><div class="summary-box" id="summaryQuestions"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const TEXTS = {
+    empty: {{ t('lecture.empty')|tojson }},
+    unsupported: {{ t('dialog.unsupported')|tojson }},
+    ready: {{ t('lecture.status_ready')|tojson }},
+    started: {{ t('lecture.status_started')|tojson }},
+    recording: {{ t('lecture.status_recording')|tojson }},
+    saved: {{ t('lecture.status_saved')|tojson }},
+    mic: {{ t('lecture.status_mic')|tojson }},
+    error: {{ t('lecture.status_error')|tojson }},
+    noText: {{ t('lecture.no_text')|tojson }},
+    saveFailed: {{ t('lecture.save_failed')|tojson }},
+    exportHint: {{ t('lecture.export_hint')|tojson }},
+    noExport: {{ t('lecture.no_export')|tojson }},
+    cleared: {{ t('lecture.cleared')|tojson }},
+    copied: {{ t('dialog.copied')|tojson }},
+    sessionTitle: {{ t('lecture.session_title')|tojson }},
+    demoText: {{ t('lecture.demo_text')|tojson }},
+    demoSaved: {{ t('lecture.demo_ready')|tojson }},
+    summaryFallback: {{ t('lecture.summary_fallback')|tojson }},
+    summaryQuestionsFallback: {{ t('lecture.summary_questions_fallback')|tojson }}
+    , sessionFailed: {{ t('lecture.session_failed')|tojson }}
+    , qrFailed: {{ t('lecture.qr_failed')|tojson }}
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const startBtn = $("lectureStartBtn"), stopBtn = $("lectureStopBtn"), saveBtn = $("lectureSaveBtn");
+  const summaryBtn = $("lectureSummaryBtn"), exportBtn = $("lectureExportBtn"), fullscreenBtn = $("lectureFullscreenBtn");
+  const demoBtn = $("lectureDemoBtn"), clearBtn = $("lectureClearBtn"), langSelect = $("lectureLangSelect");
+  const fontSelect = $("lectureFontSelect"), contrastSelect = $("lectureContrastSelect"), bgSelect = $("lectureBgSelect");
+  const status = $("lectureStatus"), screen = $("lectureScreen"), timerNode = $("lectureTimer"), wordsNode = $("lectureWords");
+  const exportLinks = $("lectureExportLinks"), txtLink = $("lectureTxt"), pdfLink = $("lecturePdf"), docxLink = $("lectureDocx");
+  const dashboard = $("lectureDashboard"), notes = $("lectureNotes");
+  const qualityMic = $("qualityMic"), qualityRecording = $("qualityRecording"), qualitySound = $("qualitySound"), qualityRecognition = $("qualityRecognition");
+  const shareLink = $("lectureShareLink"), qrImage = $("lectureQrImage"), qrBox = $("lectureQrBox");
+  const copyLinkBtn = $("lectureCopyLinkBtn"), openQrBtn = $("lectureOpenQrBtn"), qrError = $("lectureQrError");
+
+  let recognition = null, isRecording = false, finalText = "", seconds = 0, timer = null, savedId = null;
+  let segments = [], lectureSessionId = null, lectureJoinUrl = "", lectureQrUrl = "";
+
+  async function createLectureSession() {
+    try {
+      const response = await fetch("/api/lecture-sessions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) throw new Error(payload.error || "session");
+      lectureSessionId = payload.data.id;
+      lectureJoinUrl = payload.data.join_url;
+      lectureQrUrl = payload.data.qr_url;
+      shareLink.textContent = lectureJoinUrl;
+      shareLink.href = lectureJoinUrl;
+      openQrBtn.href = lectureQrUrl;
+      openQrBtn.setAttribute("aria-disabled", "false");
+      copyLinkBtn.disabled = false;
+      qrImage.src = payload.data.qr_url;
+      qrBox.hidden = false;
+      qrError.hidden = true;
+    } catch (error) {
+      shareLink.removeAttribute("href");
+      shareLink.textContent = "";
+      qrBox.hidden = true;
+      qrError.textContent = TEXTS.sessionFailed;
+      qrError.hidden = false;
+    }
+  }
+
+  async function publishLecture(statusText = "ready") {
+    if (!lectureSessionId) return;
+    try {
+      await fetch(`/api/lecture-sessions/${lectureSessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caption: screen.textContent.trim() === TEXTS.empty ? "" : screen.textContent.trim(),
+          text: timestampedText(),
+          status: statusText,
+          seconds,
+          words: countWords(finalText || screen.textContent),
+          language: langSelect.value
+        })
+      });
+    } catch (error) {
+      /* The teacher UI keeps working even if a student view is not connected. */
+    }
+  }
+
+  function setQuality(node, state) {
+    node.classList.toggle("good", state === "good");
+    node.classList.toggle("error", state === "error");
+  }
+  function setStatus(text, recording = false, error = false) {
+    const dot = document.createElement("span");
+    dot.className = "lecture-dot";
+    dot.setAttribute("aria-hidden", "true");
+    status.replaceChildren(dot, document.createTextNode(text));
+    status.classList.toggle("recording", recording);
+    screen.classList.toggle("recording-pulse", recording);
+    setQuality(qualityRecording, recording ? "good" : "");
+    if (error) setQuality(qualityMic, "error");
+    publishLecture(recording ? "recording" : (error ? "error" : "ready"));
+  }
+  function formatTime(total) {
+    const minutes = String(Math.floor(total / 60)).padStart(2, "0");
+    const secs = String(total % 60).padStart(2, "0");
+    return `${minutes}:${secs}`;
+  }
+  function startTimer() {
+    if (timer) return;
+    timer = setInterval(() => { seconds += 1; timerNode.textContent = formatTime(seconds); }, 1000);
+  }
+  function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+  function countWords(text) { const cleaned = text.trim(); return cleaned ? cleaned.split(/\s+/).length : 0; }
+  function updateScreen(text) {
+    const value = text.trim();
+    screen.textContent = value || TEXTS.empty;
+    wordsNode.textContent = countWords(value);
+    publishLecture(isRecording ? "recording" : "ready");
+  }
+  function timestampedText() {
+    return segments.length ? segments.map((item) => `${item.time} — ${item.text}`).join("\n") : screen.textContent.trim();
+  }
+  function resetExport() {
+    savedId = null; exportBtn.disabled = true; exportLinks.hidden = true;
+    txtLink.href = "#"; pdfLink.href = "#"; docxLink.href = "#";
+  }
+  function showDashboard() {
+    $("dashDuration").textContent = formatTime(seconds);
+    $("dashWords").textContent = countWords(finalText || screen.textContent);
+    $("dashDate").textContent = new Date().toLocaleDateString();
+    $("dashLang").textContent = langSelect.options[langSelect.selectedIndex].text;
+    dashboard.hidden = false;
+  }
+  function SpeechRecognitionCtor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+  function setupRecognition() {
+    const SpeechRecognition = SpeechRecognitionCtor();
+    if (!SpeechRecognition) { setStatus(TEXTS.unsupported, false, true); startBtn.disabled = true; stopBtn.disabled = true; return null; }
+    const rec = new SpeechRecognition();
+    rec.continuous = true; rec.interimResults = true; rec.lang = langSelect.value;
+    rec.onstart = () => {
+      isRecording = true; startBtn.disabled = true; stopBtn.disabled = false;
+      setQuality(qualityMic, "good"); setQuality(qualitySound, "good"); setQuality(qualityRecognition, "good");
+      setStatus(TEXTS.recording, true); startTimer();
+    };
+    rec.onend = () => { isRecording = false; startBtn.disabled = false; stopBtn.disabled = true; setStatus(TEXTS.ready, false); stopTimer(); showDashboard(); publishLecture("stopped"); };
+    rec.onerror = (event) => { setStatus(event.error === "not-allowed" ? TEXTS.mic : `${TEXTS.error}: ${event.error}`, false, true); stopTimer(); showDashboard(); publishLecture("error"); };
+    rec.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) { finalText += text + " "; segments.push({ time: formatTime(seconds), text: text.trim() }); }
+        else interim += text;
+      }
+      updateScreen(finalText + interim); resetExport();
+    };
+    return rec;
+  }
+  function startLecture() {
+    recognition = recognition || setupRecognition();
+    if (!recognition || isRecording) return;
+    recognition.lang = langSelect.value; setStatus(TEXTS.started, true); recognition.start();
+  }
+  function stopLecture() { recognition?.stop(); stopTimer(); showDashboard(); }
+  async function saveLecture() {
+    const text = timestampedText();
+    if (!text || text === TEXTS.empty) { setStatus(TEXTS.noText, false); return null; }
+    saveBtn.disabled = true; saveBtn.classList.add("is-loading");
+    try {
+      const response = await fetch("/api/history", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language: langSelect.value, duration: seconds, source: "lecture", title: TEXTS.sessionTitle })
+      });
+      const data = await response.json();
+      if (response.ok && data.ok !== false) {
+        savedId = data.data.id;
+        txtLink.href = `/api/history/${savedId}/export/txt`; pdfLink.href = `/api/history/${savedId}/export/pdf`; docxLink.href = `/api/history/${savedId}/export/docx`;
+        exportBtn.disabled = false; setStatus(TEXTS.saved, false); showDashboard(); return savedId;
+      }
+      setStatus(data.error || TEXTS.saveFailed, false); return null;
+    } catch (error) { setStatus(TEXTS.saveFailed, false); return null; }
+    finally { saveBtn.disabled = false; saveBtn.classList.remove("is-loading"); }
+  }
+  function keywordsFrom(text) {
+    const stop = new Set(["және","үшін","the","and","with","that","this","для","что","это","как","или","через","сегодня"]);
+    const counts = {};
+    text.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, " ").split(/\s+/).forEach((word) => {
+      if (word.length < 5 || stop.has(word)) return;
+      counts[word] = (counts[word] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8).map(([word]) => word);
+  }
+  async function createSummary() {
+    const text = (finalText || screen.textContent).trim();
+    if (!text || text === TEXTS.empty) { setStatus(TEXTS.noText, false); return; }
+    summaryBtn.disabled = true; summaryBtn.classList.add("is-loading");
+    const keywords = keywordsFrom(text);
+    $("summaryShort").textContent = TEXTS.summaryFallback;
+    $("summaryPoints").textContent = text.split(/[.!?]\s+/).filter(Boolean).slice(0, 4).map((x, i) => `${i + 1}. ${x.trim()}`).join("\n") || TEXTS.summaryFallback;
+    $("summaryQuestions").textContent = TEXTS.summaryQuestionsFallback;
+    renderKeywords(keywords.length ? keywords : ["SmartLecture"]);
+    notes.hidden = false;
+    try {
+      const response = await fetch("/api/ai/lecture-summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, summary_type: "lecture" }) });
+      const data = await response.json();
+      if (response.ok && data.ok !== false) {
+        const result = data.data || {};
+        $("summaryShort").textContent = result.short_summary || result.summary || $("summaryShort").textContent;
+        $("summaryPoints").textContent = Array.isArray(result.action_items) ? result.action_items.map((x, i) => `${i + 1}. ${x}`).join("\n") : $("summaryPoints").textContent;
+        const aiKeywords = Array.isArray(result.keywords) ? result.keywords : keywords;
+        renderKeywords(aiKeywords);
+      }
+    } catch (error) {
+      /* Offline/API-free demo fallback stays visible. */
+    } finally {
+      summaryBtn.disabled = false; summaryBtn.classList.remove("is-loading");
+    }
+  }
+  function renderKeywords(words) {
+    const row = $("keywordRow");
+    row.replaceChildren();
+    (words || []).forEach((word) => {
+      const chip = document.createElement("span");
+      chip.className = "keyword-chip";
+      chip.textContent = word;
+      row.appendChild(chip);
+    });
+  }
+  function runDemo() {
+    seconds = 95; segments = [
+      { time: "00:01", text: TEXTS.demoText.split("\n")[0] || TEXTS.demoText },
+      { time: "00:35", text: TEXTS.demoText.split("\n")[1] || TEXTS.demoText },
+      { time: "01:10", text: TEXTS.demoText.split("\n")[2] || TEXTS.demoText }
+    ];
+    finalText = segments.map((item) => item.text).join(" ");
+    timerNode.textContent = formatTime(seconds); updateScreen(finalText); setQuality(qualityMic, "good"); setQuality(qualitySound, "good"); setQuality(qualityRecognition, "good");
+    setStatus(TEXTS.demoSaved, false); resetExport(); showDashboard(); createSummary(); publishLecture("demo");
+  }
+  function clearLecture() {
+    finalText = ""; segments = []; seconds = 0; timerNode.textContent = "00:00"; updateScreen(""); resetExport(); dashboard.hidden = true; notes.hidden = true;
+    [qualityMic, qualityRecording, qualitySound, qualityRecognition].forEach((node) => { node.classList.remove("good", "error"); });
+    setStatus(TEXTS.cleared, false); publishLecture("ready");
+  }
+
+  startBtn.addEventListener("click", startLecture);
+  stopBtn.addEventListener("click", stopLecture);
+  saveBtn.addEventListener("click", saveLecture);
+  $("dashboardSaveBtn").addEventListener("click", saveLecture);
+  summaryBtn.addEventListener("click", createSummary);
+  $("dashboardSummaryBtn").addEventListener("click", createSummary);
+  demoBtn.addEventListener("click", runDemo);
+  clearBtn.addEventListener("click", clearLecture);
+  exportBtn.addEventListener("click", () => { if (!savedId) { setStatus(TEXTS.noExport, false); return; } exportLinks.hidden = !exportLinks.hidden; setStatus(TEXTS.exportHint, false); });
+  copyLinkBtn.addEventListener("click", async () => {
+    if (!lectureJoinUrl) return;
+    await navigator.clipboard.writeText(lectureJoinUrl);
+    setStatus(TEXTS.copied, false);
+  });
+  qrImage.addEventListener("error", () => {
+    qrBox.hidden = true;
+    qrError.textContent = TEXTS.qrFailed;
+    qrError.hidden = false;
+  });
+  fullscreenBtn.addEventListener("click", async () => { if (!document.fullscreenElement) await screen.requestFullscreen?.(); else await document.exitFullscreen?.(); });
+  document.querySelectorAll(".role-btn").forEach((button) => button.addEventListener("click", () => {
+    document.querySelectorAll(".role-btn").forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    if (button.dataset.role === "teacher") startBtn.focus();
+    else screen.focus();
+  }));
+  fontSelect.addEventListener("change", () => { screen.classList.remove("size-small", "size-medium", "size-large", "size-xl"); screen.classList.add(`size-${fontSelect.value}`); localStorage.setItem("smartlectureLectureFont", fontSelect.value); });
+  contrastSelect.addEventListener("change", () => { screen.classList.toggle("high-contrast", contrastSelect.value === "high"); localStorage.setItem("smartlectureLectureContrast", contrastSelect.value); });
+  bgSelect.addEventListener("change", () => { screen.classList.remove("bg-dark", "bg-black", "bg-blue", "bg-light"); screen.classList.add(`bg-${bgSelect.value}`); localStorage.setItem("smartlectureLectureBg", bgSelect.value); });
+  document.addEventListener("keydown", async (event) => {
+    const tag = event.target?.tagName?.toLowerCase();
+    if (["input", "textarea", "select"].includes(tag)) return;
+    if (event.code === "Space") { event.preventDefault(); isRecording ? stopLecture() : startLecture(); }
+    if (event.ctrlKey && event.key.toLowerCase() === "s") { event.preventDefault(); await saveLecture(); }
+    if (event.key.toLowerCase() === "f") { event.preventDefault(); fullscreenBtn.click(); }
+    if (event.ctrlKey && event.key.toLowerCase() === "c") { event.preventDefault(); await navigator.clipboard.writeText(timestampedText()); setStatus(TEXTS.copied, false); }
+  });
+
+  ["smartlectureLectureFont", "smartlectureLectureContrast", "smartlectureLectureBg"].forEach((key) => {
+    const value = localStorage.getItem(key);
+    if (key.endsWith("Font") && value) { fontSelect.value = value; fontSelect.dispatchEvent(new Event("change")); }
+    if (key.endsWith("Contrast") && value) { contrastSelect.value = value; contrastSelect.dispatchEvent(new Event("change")); }
+    if (key.endsWith("Bg") && value) { bgSelect.value = value; bgSelect.dispatchEvent(new Event("change")); }
+  });
+  updateScreen("");
+  createLectureSession();
+})();
+</script>
+{% endblock %}

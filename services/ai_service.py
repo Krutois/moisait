@@ -6,10 +6,11 @@ from collections import Counter
 
 class AIService:
     DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    MAX_INPUT_CHARS = int(os.getenv("AI_MAX_INPUT_CHARS", "20000"))
 
     @staticmethod
     def _normalize_text(text: str) -> str:
-        return (text or "").strip()
+        return (text or "").strip()[:AIService.MAX_INPUT_CHARS]
 
     @staticmethod
     def _get_client():
@@ -34,19 +35,19 @@ class AIService:
 
     @staticmethod
     def _extract_words(text: str):
-        return re.findall(
-            r"[A-Za-zА-Яа-яӘәІіҢңҒғҮүҰұҚқӨөҺһЁё0-9\-]{3,}",
-            text or ""
-        )
+        return re.findall(r"[\w\-]{3,}", text or "", flags=re.UNICODE)
 
     @staticmethod
     def _fallback_keywords(text: str, limit: int = 8):
         stop_words = {
-            "the", "and", "for", "with", "that", "this", "from", "into", "have", "has",
-            "you", "your", "about", "what", "when", "where", "which", "there", "their",
-            "это", "для", "что", "или", "при", "если", "они", "как", "так", "его", "она",
-            "мен", "және", "үшін", "бұл", "сол", "қалай", "болса", "болып", "деген",
-            "lecture", "summary", "text", "mode", "demo"
+            "это", "для", "что", "или", "при", "если", "они", "как", "так",
+            "его", "она", "оно", "был", "была", "были", "будет", "можно",
+            "нужно", "который", "которая", "которые",
+            "мен", "және", "үшін", "бұл", "сол", "қалай", "болса", "болып",
+            "деген", "арқылы", "керек", "бар", "жоқ",
+            "the", "and", "for", "with", "that", "this", "from", "into",
+            "have", "has", "you", "your", "about",
+            "lecture", "summary", "text", "mode", "workspace",
         }
 
         words = [
@@ -128,9 +129,13 @@ class AIService:
         sentences = AIService._split_sentences(clean)
         topic = sentences[0][:120] if sentences else "Lecture"
         summary = AIService._fallback_summary(clean, max_sentences=3)
+        detailed_summary = AIService._fallback_summary(clean, max_sentences=6)
         keywords = AIService._fallback_keywords(clean, limit=8)
         flashcards = AIService._fallback_flashcards(clean, keywords, limit=5)
         quiz = AIService._fallback_quiz(clean, keywords, limit=5)
+        exam_questions = [item["question"] for item in quiz[:5]]
+        action_items = [f"Review: {keyword}" for keyword in keywords[:5]]
+        final_conclusion = summary
 
         flashcards_block = "\n".join(
             f"{idx + 1}. {item['front']} — {item['back']}"
@@ -153,10 +158,15 @@ class AIService:
 
         return {
             "topic": topic,
+            "short_summary": summary,
+            "detailed_summary": detailed_summary,
             "summary": summary,
             "keywords": keywords,
             "flashcards": flashcards,
             "quiz": quiz,
+            "exam_questions": exam_questions,
+            "action_items": action_items,
+            "final_conclusion": final_conclusion,
             "structured": structured,
             "study_type": "study"
         }
@@ -431,7 +441,8 @@ You are building a study pack from lecture text.
 Return STRICT JSON with this exact schema:
 {{
   "topic": "short topic",
-  "summary": "short study summary",
+  "short_summary": "short study summary",
+  "detailed_summary": "detailed study summary",
   "keywords": ["term1", "term2", "term3", "term4", "term5"],
   "flashcards": [
     {{"front": "term or question", "back": "short answer"}},
@@ -440,7 +451,10 @@ Return STRICT JSON with this exact schema:
   "quiz": [
     {{"question": "question", "answer": "correct answer", "explanation": "short explanation"}},
     {{"question": "question", "answer": "correct answer", "explanation": "short explanation"}}
-  ]
+  ],
+  "exam_questions": ["question 1", "question 2"],
+  "action_items": ["action 1", "action 2"],
+  "final_conclusion": "final conclusion"
 }}
 
 Rules:
@@ -463,7 +477,8 @@ TEXT:
         if not isinstance(parsed, dict):
             return fallback, None
 
-        summary = str(parsed.get("summary") or fallback["summary"]).strip()
+        short_summary = str(parsed.get("short_summary") or parsed.get("summary") or fallback["short_summary"]).strip()
+        detailed_summary = str(parsed.get("detailed_summary") or fallback["detailed_summary"]).strip()
 
         raw_keywords = parsed.get("keywords") or fallback["keywords"]
         if not isinstance(raw_keywords, list):
@@ -511,6 +526,18 @@ TEXT:
         if not quiz:
             quiz = fallback["quiz"]
 
+        exam_questions = parsed.get("exam_questions") or fallback["exam_questions"]
+        if not isinstance(exam_questions, list):
+            exam_questions = fallback["exam_questions"]
+        exam_questions = [str(item).strip() for item in exam_questions if str(item).strip()][:8]
+
+        action_items = parsed.get("action_items") or fallback["action_items"]
+        if not isinstance(action_items, list):
+            action_items = fallback["action_items"]
+        action_items = [str(item).strip() for item in action_items if str(item).strip()][:8]
+
+        final_conclusion = str(parsed.get("final_conclusion") or fallback["final_conclusion"]).strip()
+
         topic = str(parsed.get("topic") or fallback["topic"]).strip()
         flashcards_block = "\n".join(
             f"{idx + 1}. {item['front']} — {item['back']}"
@@ -523,7 +550,8 @@ TEXT:
 
         structured = (
             f"Topic:\n{topic}\n\n"
-            f"Summary:\n{summary}\n\n"
+            f"Summary:\n{short_summary}\n\n"
+            f"Detailed summary:\n{detailed_summary}\n\n"
             f"Key terms:\n{chr(10).join('- ' + k for k in keywords) if keywords else '- No key terms found'}\n\n"
             f"Flashcards:\n{flashcards_block}\n\n"
             f"Quiz:\n{quiz_block}"
@@ -531,10 +559,15 @@ TEXT:
 
         return {
             "topic": topic,
-            "summary": summary,
+            "short_summary": short_summary,
+            "detailed_summary": detailed_summary,
+            "summary": short_summary,
             "keywords": keywords,
             "flashcards": flashcards,
             "quiz": quiz,
+            "exam_questions": exam_questions,
+            "action_items": action_items,
+            "final_conclusion": final_conclusion,
             "structured": structured,
             "study_type": "study"
         }, None

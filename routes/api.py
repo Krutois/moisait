@@ -1,516 +1,465 @@
-from datetime import datetime, timedelta
-from io import BytesIO
-import os
-import textwrap
+from datetime import timedelta
+from uuid import uuid4
 
-from flask import Blueprint, request, jsonify, Response, send_file
-from flask_login import login_required, current_user
-from sqlalchemy import func
+from flask import Blueprint, Response, current_app, jsonify, request, send_file, session, url_for
+from flask_login import current_user, login_required
+from werkzeug.utils import secure_filename
+from email_validator import EmailNotValidError, validate_email
 
-from extensions import limiter, db, csrf
-from services.transcription_service import TranscriptionService
+from extensions import db, limiter
+from models import ContactMessage, Favorite, LectureSession, Transcription, utc_now
 from services.ai_service import AIService
-from models import Favorite, Transcription, UserStats, User
+from services.audio_service import AudioService
+from services.export_service import ExportService
+from services.stats_service import StatsService
+from services.transcription_service import TranscriptionService
+from services.url_service import public_url_for
+from translations import DEFAULT_LANG, TRANSLATIONS
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
 
-def _build_export_content(transcription):
-    lines = [
-        "VoiceFlow Export",
-        f"ID: {transcription.id}",
-        f"Date: {transcription.created_at.strftime('%Y-%m-%d %H:%M') if transcription.created_at else '-'}",
-        f"Language: {transcription.language or '-'}",
-        f"Source: {transcription.source or '-'}",
-        f"Words: {transcription.word_count or 0}",
-        f"Duration: {transcription.duration or 0} sec",
-        "",
-        "Original text:",
-        transcription.text or "",
-    ]
-
-    if transcription.summary:
-        lines.extend([
-            "",
-            "Saved summary:",
-            transcription.summary
-        ])
-
-    if transcription.keywords_json:
-        lines.extend([
-            "",
-            "Keywords:",
-            ", ".join(transcription.keywords_json)
-        ])
-
-    return "\n".join(lines)
+def ok(data=None, status=200):
+    return jsonify({"ok": True, "data": data if data is not None else {}}), status
 
 
-def _find_unicode_font():
-    candidates = [
-        os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts", "arial.ttf"),
-        os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts", "calibri.ttf"),
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-        "/Library/Fonts/Arial.ttf",
-    ]
-
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-
-    return None
+def fail(message, status=400):
+    return jsonify({"ok": False, "error": message}), status
 
 
-@bp.route("/transcribe", methods=["POST"])
+def tr(key):
+    lang = session.get("lang", DEFAULT_LANG)
+    return TRANSLATIONS.get(lang, {}).get(key, TRANSLATIONS[DEFAULT_LANG].get(key, key))
+
+
+def localize_service_error(error):
+    if not error:
+        return error
+    if "OPENAI_API_KEY" in error:
+        return tr("api.openai_key_missing")
+    mapping = {
+        "OpenAI package is not installed": "api.openai_package_missing",
+        "OpenAI quota exceeded": "api.openai_quota_exceeded",
+        "OpenAI API key is invalid": "api.openai_key_invalid",
+        "OpenAI rate limit reached": "api.openai_rate_limit",
+        "OpenAI rejected the audio request": "api.openai_audio_rejected",
+        "Audio transcription failed": "api.audio_transcription_failed",
+        "AI client is unavailable": "api.ai_client_unavailable",
+        "Empty AI response": "api.ai_empty_response",
+        "Empty text": "api.text_required",
+    }
+    return tr(mapping.get(error, error))
+
+
+def get_json():
+    data = request.get_json(silent=True)
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def owned_transcription(item_id):
+    return Transcription.query.filter_by(id=item_id, user_id=current_user.id).first()
+
+
+def is_teacher_user():
+    return current_user.is_authenticated and current_user.role in {"teacher", "admin"}
+
+
+def can_update_lecture_session(item):
+    return current_user.is_authenticated and (item.owner_id == current_user.id or is_teacher_user())
+
+
+def clean_session_id(session_id):
+    return "".join(ch for ch in str(session_id) if ch.isalnum() or ch in {"-", "_"})[:40]
+
+
+@bp.route("/lecture-sessions", methods=["POST"])
+@login_required
+def create_lecture_session():
+    session_id = uuid4().hex
+    item = LectureSession(
+        id=session_id,
+        owner_id=current_user.id,
+        status="ready",
+        language=(get_json() or {}).get("language", "ru-RU"),
+        expires_at=utc_now() + timedelta(hours=12),
+    )
+    db.session.add(item)
+    db.session.commit()
+    return ok(
+        {
+            "id": session_id,
+            "join_url": public_url_for("main.lecture_join", session_id=session_id),
+            "qr_url": public_url_for("main.lecture_qr", session_id=session_id),
+        },
+        201,
+    )
+
+
+@bp.route("/lecture-sessions/<session_id>", methods=["POST"])
+@login_required
+def update_lecture_session(session_id):
+    item = db.session.get(LectureSession, clean_session_id(session_id))
+    if not item:
+        return fail(tr("api.lecture_session_not_found"), 404)
+    if item.is_expired:
+        return fail(tr("api.lecture_session_expired"), 410)
+    if not can_update_lecture_session(item):
+        return fail(tr("api.forbidden"), 403)
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    for key in ("caption", "text", "status", "language"):
+        if key in data:
+            setattr(item, key, str(data.get(key) or "")[:200000])
+    for key in ("seconds", "words"):
+        if key in data:
+            setattr(item, key, max(int(data.get(key) or 0), 0))
+    db.session.commit()
+    return ok(item.owner_dict())
+
+
+@bp.route("/lecture-sessions/<session_id>", methods=["GET"])
+def get_lecture_session(session_id):
+    item = db.session.get(LectureSession, clean_session_id(session_id))
+    if not item:
+        return fail(tr("api.lecture_session_not_found"), 404)
+    if item.is_expired:
+        return fail(tr("api.lecture_session_expired"), 410)
+    return ok(item.public_dict())
+
+
 @bp.route("/history", methods=["POST"])
 @limiter.limit("20 per minute")
 @login_required
-@csrf.exempt
 def save_transcription():
-    data = request.get_json(silent=True) or {}
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
 
     text = (data.get("text") or "").strip()
-    language = data.get("language", "ru-RU")
-    duration = int(data.get("duration", 0) or 0)
-    source = data.get("source", "demo")
-    summary_data = data.get("summary_data")
-
     if not text:
-        return jsonify({"error": "No text provided"}), 400
+        return fail(tr("api.text_required"), 400)
+    if len(text) > 200000:
+        return fail(tr("api.text_too_long"), 413)
 
-    transcription = TranscriptionService.save_transcription(
-        user_id=current_user.id,
-        text=text,
-        language=language,
-        duration=duration,
-        source=source,
-        summary_data=summary_data,
-    )
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        tags = [item.strip() for item in tags.split(",") if item.strip()]
+    if not isinstance(tags, list):
+        return fail(tr("api.tags_list"), 400)
 
-    if not transcription:
-        return jsonify({"error": "Save failed"}), 400
+    try:
+        transcription = TranscriptionService.save_transcription(
+            user_id=current_user.id,
+            title=data.get("title"),
+            text=text,
+            language=data.get("language", "ru-RU"),
+            duration=int(data.get("duration", 0) or 0),
+            source=data.get("source", "speech"),
+            summary_data=data.get("summary_data"),
+            tags=tags,
+            folder=data.get("folder"),
+        )
+    except Exception:
+        current_app.logger.exception("Failed to save transcription")
+        db.session.rollback()
+        return fail(tr("api.save_failed"), 500)
 
-    return jsonify({
-        "status": "saved",
-        "id": transcription.id,
-        "item": transcription.to_dict()
-    }), 201
+    return ok(transcription.to_dict(), 201)
+
+
+@bp.route("/transcribe", methods=["POST"])
+@login_required
+def transcribe_alias():
+    return save_transcription()
 
 
 @bp.route("/history", methods=["GET"])
 @login_required
 def get_history():
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 20, type=int), 100)
-    search = request.args.get("search", "").strip()
-    language = request.args.get("language", "").strip()
-    source = request.args.get("source", "").strip()
-    favorites_only = request.args.get("favorites_only", "").lower() in {"1", "true", "yes"}
-
     pagination = TranscriptionService.get_user_history(
         user_id=current_user.id,
-        page=page,
-        per_page=per_page,
-        search=search,
-        language=language,
-        source=source,
-        favorites_only=favorites_only,
+        page=max(request.args.get("page", 1, type=int), 1),
+        per_page=min(max(request.args.get("per_page", 20, type=int), 1), 100),
+        search=request.args.get("search", "").strip(),
+        language=request.args.get("language", "").strip(),
+        source=request.args.get("source", "").strip(),
+        folder=request.args.get("folder", "").strip(),
+        tag=request.args.get("tag", "").strip(),
+        favorites_only=request.args.get("favorites_only", "").lower() in {"1", "true", "yes"},
+        pinned_only=request.args.get("pinned_only", "").lower() in {"1", "true", "yes"},
+    )
+    return ok(
+        {
+            "items": [item.to_dict() for item in pagination.items],
+            "total": pagination.total,
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "pages": pagination.pages,
+        }
     )
 
-    return jsonify({
-        "items": [item.to_dict() for item in pagination.items],
-        "total": pagination.total,
-        "page": page,
-        "per_page": per_page,
-        "pages": pagination.pages,
-    })
+
+@bp.route("/history/<int:item_id>", methods=["GET"])
+@login_required
+def get_history_item(item_id):
+    transcription = owned_transcription(item_id)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
+    return ok(transcription.to_dict())
+
+
+@bp.route("/history/<int:item_id>", methods=["PATCH"])
+@login_required
+def update_history_item(item_id):
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    transcription = TranscriptionService.update_transcription(current_user.id, item_id, **data)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
+    return ok(transcription.to_dict())
 
 
 @bp.route("/history/<int:item_id>", methods=["DELETE"])
 @login_required
-@csrf.exempt
 def delete_transcription(item_id):
     if TranscriptionService.delete_transcription(item_id, current_user.id):
-        return jsonify({"status": "deleted"})
-    return jsonify({"error": "Not found or unauthorized"}), 404
+        return ok({"deleted": True})
+    return fail(tr("api.not_found"), 404)
 
 
 @bp.route("/history/<int:item_id>/favorite", methods=["POST"])
 @login_required
-@csrf.exempt
 def toggle_favorite(item_id):
-    transcription = Transcription.query.filter_by(
-        id=item_id,
-        user_id=current_user.id
-    ).first_or_404()
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
 
-    data = request.get_json(silent=True) or {}
+    transcription = owned_transcription(item_id)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
+
     target_state = data.get("is_favorite")
-
-    favorite = Favorite.query.filter_by(
-        user_id=current_user.id,
-        transcription_id=transcription.id
-    ).first()
-
-    if target_state is True and not favorite:
-        db.session.add(Favorite(
+    if target_state is None:
+        target_state = Favorite.query.filter_by(
             user_id=current_user.id,
-            transcription_id=transcription.id
-        ))
-        db.session.commit()
+            transcription_id=transcription.id,
+        ).first() is None
 
-    elif target_state is False and favorite:
-        db.session.delete(favorite)
-        db.session.commit()
-
-    elif target_state is None:
-        if favorite:
-            db.session.delete(favorite)
-        else:
-            db.session.add(Favorite(
-                user_id=current_user.id,
-                transcription_id=transcription.id
-            ))
-        db.session.commit()
-
-    is_favorite = Favorite.query.filter_by(
-        user_id=current_user.id,
-        transcription_id=transcription.id
-    ).first() is not None
-
-    return jsonify({
-        "status": "ok",
-        "is_favorite": is_favorite
-    })
-
-
-@bp.route("/favorites", methods=["GET"])
-@login_required
-def get_favorites():
-    favorites = (
-        Favorite.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Favorite.created_at.desc())
-        .all()
+    is_favorite = TranscriptionService.set_favorite(
+        current_user.id,
+        transcription.id,
+        bool(target_state),
     )
-
-    return jsonify([
-        {
-            "id": fav.id,
-            "transcription_id": fav.transcription_id,
-            "text": fav.transcription.text,
-            "summary": fav.transcription.summary,
-            "summary_type": fav.transcription.summary_type,
-            "keywords_json": fav.transcription.keywords_json or [],
-            "language": fav.transcription.language,
-            "source": fav.transcription.source,
-            "created_at": fav.created_at.isoformat(),
-        }
-        for fav in favorites
-    ])
+    return ok({"is_favorite": is_favorite})
 
 
 @bp.route("/history/<int:item_id>/export/txt", methods=["GET"])
-@bp.route("/export/<int:item_id>/txt", methods=["GET"])
 @login_required
-def export_text(item_id):
-    transcription = Transcription.query.filter_by(
-        id=item_id,
-        user_id=current_user.id
-    ).first_or_404()
-
-    content = _build_export_content(transcription)
-
-    response = Response(
-        content,
-        status=200,
-        mimetype="text/plain; charset=utf-8",
-    )
-    response.headers["Content-Disposition"] = (
-        f'attachment; filename="transcript_{item_id}.txt"'
-    )
+def export_txt(item_id):
+    transcription = owned_transcription(item_id)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
+    content = ExportService.txt(transcription, session.get("lang", DEFAULT_LANG))
+    response = Response(content, mimetype="text/plain; charset=utf-8")
+    response.headers["Content-Disposition"] = f'attachment; filename="smartlecture_{item_id}.txt"'
     return response
 
 
-@bp.route("/history/<int:item_id>/export", methods=["GET"])
 @bp.route("/history/<int:item_id>/export/pdf", methods=["GET"])
-@bp.route("/export/<int:item_id>", methods=["GET"])
-@bp.route("/export/<int:item_id>/pdf", methods=["GET"])
 @login_required
 def export_pdf(item_id):
-    transcription = Transcription.query.filter_by(
-        id=item_id,
-        user_id=current_user.id
-    ).first_or_404()
-
+    transcription = owned_transcription(item_id)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
     try:
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-    except ImportError:
-        return jsonify({
-            "error": "reportlab is not installed. Run: pip install reportlab"
-        }), 500
-
-    font_path = _find_unicode_font()
-    if not font_path:
-        return jsonify({
-            "error": "Unicode font not found. Install Arial or DejaVu Sans."
-        }), 500
-
-    font_name = "VoiceFlowUnicode"
-    if font_name not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont(font_name, font_path))
-
-    content = _build_export_content(transcription)
-
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-
-    left_margin = 50
-    top_margin = height - 50
-    bottom_margin = 50
-    font_size = 11
-
-    usable_width = width - (left_margin * 2)
-    approx_chars = max(40, int(usable_width / (font_size * 0.55)))
-
-    text_object = pdf.beginText(left_margin, top_margin)
-    text_object.setFont(font_name, font_size)
-    text_object.setLeading(16)
-
-    for raw_line in content.splitlines():
-        wrapped_lines = textwrap.wrap(
-            raw_line,
-            width=approx_chars,
-            replace_whitespace=False,
-            drop_whitespace=False
-        ) or [""]
-
-        for line in wrapped_lines:
-            if text_object.getY() <= bottom_margin:
-                pdf.drawText(text_object)
-                pdf.showPage()
-                text_object = pdf.beginText(left_margin, top_margin)
-                text_object.setFont(font_name, font_size)
-                text_object.setLeading(16)
-
-            text_object.textLine(line)
-
-    pdf.drawText(text_object)
-    pdf.save()
-
-    buffer.seek(0)
-
+        buffer = ExportService.pdf(transcription, session.get("lang", DEFAULT_LANG))
+    except Exception:
+        current_app.logger.exception("PDF export failed")
+        return fail(tr("api.pdf_export_failed"), 500)
     return send_file(
         buffer,
         as_attachment=True,
-        download_name=f"transcript_{item_id}.pdf",
-        mimetype="application/pdf"
+        download_name=f"smartlecture_{item_id}.pdf",
+        mimetype="application/pdf",
     )
+
+
+@bp.route("/history/<int:item_id>/export/docx", methods=["GET"])
+@login_required
+def export_docx(item_id):
+    transcription = owned_transcription(item_id)
+    if not transcription:
+        return fail(tr("api.not_found"), 404)
+    try:
+        buffer = ExportService.docx(transcription, session.get("lang", DEFAULT_LANG))
+    except Exception:
+        current_app.logger.exception("DOCX export failed")
+        return fail(tr("api.docx_export_failed"), 500)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"smartlecture_{item_id}.docx",
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+
+@bp.route("/export/<int:item_id>/txt", methods=["GET"])
+@bp.route("/export/<int:item_id>", methods=["GET"])
+@login_required
+def legacy_export_txt(item_id):
+    return export_txt(item_id)
+
+
+@bp.route("/export/<int:item_id>/pdf", methods=["GET"])
+@login_required
+def legacy_export_pdf(item_id):
+    return export_pdf(item_id)
+
+
+def ai_response(result, error):
+    if error:
+        return fail(localize_service_error(error), 400)
+    return ok(result)
 
 
 @bp.route("/ai/correct", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def ai_correct():
-    data = request.get_json(silent=True) or {}
-    result, error = AIService.correct_text(data.get("text", ""))
-
-    if error:
-        return jsonify({"error": error}), 400
-
-    return jsonify({"result": result})
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    return ai_response(*AIService.correct_text(data.get("text", "")))
 
 
 @bp.route("/ai/paraphrase", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def ai_paraphrase():
-    data = request.get_json(silent=True) or {}
-    result, error = AIService.paraphrase_text(data.get("text", ""))
-
-    if error:
-        return jsonify({"error": error}), 400
-
-    return jsonify({"result": result})
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    return ai_response(*AIService.paraphrase_text(data.get("text", "")))
 
 
 @bp.route("/ai/translate", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def ai_translate():
-    data = request.get_json(silent=True) or {}
-    result, error = AIService.translate_text(
-        data.get("text", ""),
-        data.get("target", "ru")
-    )
-
-    if error:
-        return jsonify({"error": error}), 400
-
-    return jsonify({"result": result})
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    return ai_response(*AIService.translate_text(data.get("text", ""), data.get("target", "ru")))
 
 
 @bp.route("/ai/summarize", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def ai_summarize():
-    data = request.get_json(silent=True) or {}
-    result, error = AIService.summarize_text(data.get("text", ""))
-
-    if error:
-        return jsonify({"error": error}), 400
-
-    return jsonify({"result": result})
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
+    return ai_response(*AIService.summarize_text(data.get("text", "")))
 
 
 @bp.route("/ai/lecture-summary", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def lecture_summary():
-    data = request.get_json(silent=True) or {}
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
 
     text = (data.get("text") or "").strip()
-    summary_type = (data.get("summary_type") or "lecture").strip()
-
-    allowed_types = {"lecture", "short", "bullets", "exam", "terms"}
-    if summary_type not in allowed_types:
-        summary_type = "lecture"
-
     if not text:
-        return jsonify({"error": "Text is required"}), 400
+        return fail(tr("api.text_required"), 400)
+    if len(text) > current_app.config.get("AI_MAX_INPUT_CHARS", 20000):
+        return fail(tr("api.ai_text_too_long"), 413)
 
-    result, error = AIService.lecture_summary_text(
-        text,
-        summary_type=summary_type
-    )
-
-    if error:
-        return jsonify({"error": error}), 400
-
-    return jsonify(result)
+    result, error = AIService.lecture_summary_text(text, data.get("summary_type", "lecture"))
+    return ai_response(result, error)
 
 
 @bp.route("/ai/study-mode", methods=["POST"])
 @limiter.limit("10 per minute")
 @login_required
-@csrf.exempt
 def ai_study_mode():
-    data = request.get_json(silent=True) or {}
-    text = (data.get("text") or "").strip()
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
 
+    text = (data.get("text") or "").strip()
     if not text:
-        return jsonify({"error": "Text is required"}), 400
+        return fail(tr("api.text_required"), 400)
+    if len(text) > current_app.config.get("AI_MAX_INPUT_CHARS", 20000):
+        return fail(tr("api.ai_text_too_long"), 413)
 
     result, error = AIService.study_mode_text(text)
-    if error:
-        return jsonify({"error": error}), 400
+    return ai_response(result, error)
 
-    return jsonify(result)
+
+@bp.route("/transcribe/audio", methods=["POST"])
+@bp.route("/audio/transcribe", methods=["POST"])
+@limiter.limit("5 per minute")
+@login_required
+def transcribe_audio():
+    file_storage = request.files.get("audio")
+    if not file_storage or not file_storage.filename:
+        return fail(tr("api.audio_required"), 400)
+
+    filename = secure_filename(file_storage.filename)
+    if not AudioService.is_allowed(filename):
+        return fail(tr("api.audio_formats"), 400)
+
+    text, error = AudioService.transcribe(file_storage, current_app.config.get("OPENAI_AUDIO_MODEL"))
+    if error:
+        status = 500
+        if "OPENAI_API_KEY" in error:
+            status = 503
+        elif error == "OpenAI quota exceeded":
+            status = 402
+        elif error == "OpenAI rate limit reached":
+            status = 429
+        elif error == "OpenAI API key is invalid":
+            status = 401
+        elif error == "OpenAI rejected the audio request":
+            status = 400
+        return fail(localize_service_error(error), status)
+    return ok({"text": text, "filename": filename})
 
 
 @bp.route("/stats", methods=["GET"])
 @login_required
 def get_stats():
-    stats = current_user.stats
-    if not stats:
-        stats = UserStats(user_id=current_user.id, daily_stats={})
-        db.session.add(stats)
-        db.session.commit()
-
-    total_records = Transcription.query.filter_by(user_id=current_user.id).count()
-
-    favorite_records = (
-        db.session.query(func.count(Favorite.id))
-        .filter(Favorite.user_id == current_user.id)
-        .scalar()
-        or 0
-    )
-
-    total_words = (
-        db.session.query(func.coalesce(func.sum(Transcription.word_count), 0))
-        .filter(Transcription.user_id == current_user.id)
-        .scalar()
-        or 0
-    )
-
-    avg_words = int(total_words / total_records) if total_records > 0 else 0
-
-    today = datetime.utcnow().date()
-    days = [today - timedelta(days=i) for i in range(6, -1, -1)]
-
-    daily_activity = []
-    for day in days:
-        count = (
-            db.session.query(func.count(Transcription.id))
-            .filter(
-                Transcription.user_id == current_user.id,
-                func.date(Transcription.created_at) == day
-            )
-            .scalar()
-            or 0
-        )
-
-        daily_activity.append({
-            "date": day.strftime("%Y-%m-%d"),
-            "count": count
-        })
-
-    return jsonify({
-        "total_records": total_records,
-        "favorite_records": favorite_records,
-        "total_words": total_words,
-        "avg_words": avg_words,
-        "daily_activity": daily_activity
-    })
+    return ok(StatsService.for_user(current_user.id))
 
 
-@bp.route("/user", methods=["PUT"])
-@login_required
-@csrf.exempt
-def update_user():
-    data = request.get_json(silent=True) or {}
+@bp.route("/contact", methods=["POST"])
+@limiter.limit("5 per minute")
+def contact_message():
+    data = get_json()
+    if data is None:
+        return fail(tr("api.invalid_json"), 400)
 
-    username = (data.get("username") or "").strip()
+    name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    topic = (data.get("topic") or "").strip()
+    message = (data.get("message") or "").strip()
+    if not all([name, email, topic, message]):
+        return fail(tr("api.all_fields_required"), 400)
+    try:
+        validate_email(email, check_deliverability=False)
+    except EmailNotValidError:
+        return fail(tr("api.email_invalid"), 400)
+    if len(message) > 5000:
+        return fail(tr("api.message_too_long"), 413)
 
-    if not username or not email:
-        return jsonify({"error": "Username and email are required"}), 400
-
-    existing_username = User.query.filter(
-        User.username == username,
-        User.id != current_user.id
-    ).first()
-
-    if existing_username:
-        return jsonify({"error": "Username already taken"}), 400
-
-    existing_email = User.query.filter(
-        User.email == email,
-        User.id != current_user.id
-    ).first()
-
-    if existing_email:
-        return jsonify({"error": "Email already taken"}), 400
-
-    current_user.username = username
-    current_user.email = email
+    db.session.add(ContactMessage(name=name[:120], email=email[:120], topic=topic[:160], message=message))
     db.session.commit()
-
-    return jsonify({
-        "status": "updated",
-        "user": {
-            "id": current_user.id,
-            "username": current_user.username,
-            "email": current_user.email,
-        }
-    })
+    return ok({"saved": True}, 201)

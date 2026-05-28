@@ -198,6 +198,31 @@
     border: 1px solid rgba(239,68,68,0.16);
   }
 
+  .access-card {
+    margin-top: 18px;
+    padding: 20px;
+    border-radius: 24px;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.16);
+  }
+
+  .access-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .access-field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .access-field label {
+    color: #dbe7ff;
+    font-weight: 800;
+  }
+
   .danger-actions {
     display: flex;
     gap: 12px;
@@ -288,14 +313,15 @@
               <div class="form-group">
                 <label>{{ t('settings.username') }}</label>
                 {% if form and form.username %}
-                  {{ form.username(class="settings-input", placeholder=t('settings.username_placeholder')) }}
+                  {{ form.username(class="settings-input" ~ (" input-error" if form.username.errors else ""), placeholder=t('settings.username_hint')) }}
+                  {% if form.username.errors %}<div class="field-errors">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
                 {% else %}
                   <input
                     type="text"
                     name="username"
                     class="settings-input"
                     value="{{ current_user.username }}"
-                    placeholder="{{ t('settings.username_placeholder') }}"
+                    placeholder="{{ t('settings.username_hint') }}"
                   >
                 {% endif %}
               </div>
@@ -303,14 +329,15 @@
               <div class="form-group">
                 <label>{{ t('settings.email') }}</label>
                 {% if form and form.email %}
-                  {{ form.email(class="settings-input", placeholder=t('settings.email_placeholder')) }}
+                  {{ form.email(class="settings-input" ~ (" input-error" if form.email.errors else ""), placeholder=t('settings.email_hint')) }}
+                  {% if form.email.errors %}<div class="field-errors">{% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
                 {% else %}
                   <input
                     type="email"
                     name="email"
                     class="settings-input"
                     value="{{ current_user.email }}"
-                    placeholder="{{ t('settings.email_placeholder') }}"
+                    placeholder="{{ t('settings.email_hint') }}"
                   >
                 {% endif %}
               </div>
@@ -321,16 +348,34 @@
               <p>{{ t('settings.security_text') }}</p>
 
               <div class="form-group">
+                <label>{{ t('common.current_password') }}</label>
+                {% if form and form.current_password %}
+                  {{ form.current_password(class="settings-input" ~ (" input-error" if form.current_password.errors else ""), placeholder=t('common.current_password_hint'), id="currentPasswordField") }}
+                  {% if form.current_password.errors %}<div class="field-errors">{% for error in form.current_password.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+                {% else %}
+                  <input
+                    type="password"
+                    name="current_password"
+                    id="currentPasswordField"
+                    class="settings-input"
+                    placeholder="{{ t('common.current_password_hint') }}"
+                  >
+                {% endif %}
+                <span class="input-helper">{{ t('common.current_password_helper') }}</span>
+              </div>
+
+              <div class="form-group">
                 <label>{{ t('settings.new_password') }}</label>
                 {% if form and form.password %}
-                  {{ form.password(class="settings-input", placeholder=t('settings.new_password_placeholder'), id="passwordField") }}
+                  {{ form.password(class="settings-input" ~ (" input-error" if form.password.errors else ""), placeholder=t('settings.new_password_hint'), id="passwordField") }}
+                  {% if form.password.errors %}<div class="field-errors">{% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
                 {% else %}
                   <input
                     type="password"
                     name="password"
                     id="passwordField"
                     class="settings-input"
-                    placeholder="{{ t('settings.new_password_placeholder') }}"
+                    placeholder="{{ t('settings.new_password_hint') }}"
                   >
                 {% endif %}
                 <span class="input-helper">{{ t('settings.password_hint') }}</span>
@@ -339,14 +384,15 @@
               <div class="form-group">
                 <label>{{ t('settings.confirm_password') }}</label>
                 {% if form and form.confirm %}
-                  {{ form.confirm(class="settings-input", placeholder=t('settings.confirm_password_placeholder'), id="confirmField") }}
+                  {{ form.confirm(class="settings-input" ~ (" input-error" if form.confirm.errors else ""), placeholder=t('settings.confirm_password_hint'), id="confirmField") }}
+                  {% if form.confirm.errors %}<div class="field-errors">{% for error in form.confirm.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
                 {% else %}
                   <input
                     type="password"
                     name="confirm"
                     id="confirmField"
                     class="settings-input"
-                    placeholder="{{ t('settings.confirm_password_placeholder') }}"
+                    placeholder="{{ t('settings.confirm_password_hint') }}"
                   >
                 {% endif %}
               </div>
@@ -363,16 +409,81 @@
           </div>
         </form>
 
+        <div class="access-card">
+          <h3>{{ t('accessibility.title') }}</h3>
+          <p>{{ t('accessibility.description') }}</p>
+          <div class="access-grid">
+            <div class="access-field">
+              <label for="accessTextSize">{{ t('accessibility.text_size') }}</label>
+              <select class="settings-input" id="accessTextSize" data-access-setting="textSize">
+                <option value="normal">{{ t('accessibility.size_medium') }}</option>
+                <option value="large">{{ t('accessibility.size_large') }}</option>
+                <option value="xl">{{ t('accessibility.size_xl') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label for="accessTheme">{{ t('accessibility.theme') }}</label>
+              <select class="settings-input" id="accessTheme" data-access-setting="theme">
+                <option value="dark">{{ t('accessibility.theme_dark') }}</option>
+                <option value="light">{{ t('accessibility.theme_light') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label for="accessContrast">{{ t('accessibility.contrast') }}</label>
+              <select class="settings-input" id="accessContrast" data-access-setting="contrast">
+                <option value="normal">{{ t('accessibility.contrast_normal') }}</option>
+                <option value="high">{{ t('accessibility.contrast_high') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label for="accessMotion">{{ t('accessibility.motion') }}</label>
+              <select class="settings-input" id="accessMotion" data-access-setting="motion">
+                <option value="normal">{{ t('accessibility.motion_normal') }}</option>
+                <option value="reduced">{{ t('accessibility.motion_reduced') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label for="accessVisualAlerts">{{ t('accessibility.visual_alerts') }}</label>
+              <select class="settings-input" id="accessVisualAlerts" data-access-setting="visualAlerts">
+                <option value="on">{{ t('accessibility.visual_on') }}</option>
+                <option value="off">{{ t('accessibility.visual_off') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label for="accessCaptionBg">{{ t('accessibility.caption_bg') }}</label>
+              <select class="settings-input" id="accessCaptionBg" data-access-setting="captionBg">
+                <option value="dark">{{ t('accessibility.bg_dark') }}</option>
+                <option value="black">{{ t('accessibility.bg_black') }}</option>
+                <option value="blue">{{ t('accessibility.bg_blue') }}</option>
+                <option value="light">{{ t('accessibility.bg_light') }}</option>
+              </select>
+            </div>
+            <div class="access-field">
+              <label>{{ t('accessibility.caption_fullscreen') }}</label>
+              <a class="btn btn-primary" href="{{ url_for('main.subtitles') }}">{{ t('nav.live_subtitles') }}</a>
+            </div>
+          </div>
+        </div>
+
         <div class="danger-card">
           <h3>{{ t('settings.danger_title') }}</h3>
           <p>{{ t('settings.danger_text') }}</p>
 
           <div class="danger-actions">
             <form method="POST" action="{{ url_for('auth.delete_account') }}" data-confirm="{{ t('settings.confirm_delete') }}">
+              {{ delete_form.hidden_tag() if delete_form }}
+              {% if delete_form and delete_form.password %}
+                {{ delete_form.password(class="settings-input", placeholder=t('common.delete_password_hint')) }}
+              {% else %}
+                <input class="settings-input" type="password" name="password" placeholder="{{ t('common.delete_password_hint') }}">
+              {% endif %}
               <button type="submit" class="btn btn-danger">{{ t('settings.delete_account') }}</button>
             </form>
 
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-soft">{{ t('settings.sign_out') }}</a>
+            <form method="POST" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-soft" type="submit">{{ t('settings.sign_out') }}</button>
+            </form>
           </div>
         </div>
       </div>

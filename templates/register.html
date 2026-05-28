@@ -207,13 +207,14 @@
           <div class="form-group">
             <label>{{ t('register.username') }}</label>
             {% if form and form.username %}
-              {{ form.username(class="auth-input", placeholder=t('register.username_placeholder')) }}
+              {{ form.username(class="auth-input" ~ (" input-error" if form.username.errors else ""), placeholder=t('register.username_hint')) }}
+              {% if form.username.errors %}<div class="field-errors">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="text"
                 name="username"
                 class="auth-input"
-                placeholder="{{ t('register.username_placeholder') }}"
+                placeholder="{{ t('register.username_hint') }}"
                 required
               >
             {% endif %}
@@ -222,13 +223,14 @@
           <div class="form-group">
             <label>{{ t('register.email') }}</label>
             {% if form and form.email %}
-              {{ form.email(class="auth-input", placeholder=t('register.email_placeholder')) }}
+              {{ form.email(class="auth-input" ~ (" input-error" if form.email.errors else ""), placeholder=t('register.email_hint')) }}
+              {% if form.email.errors %}<div class="field-errors">{% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="email"
                 name="email"
                 class="auth-input"
-                placeholder="{{ t('register.email_placeholder') }}"
+                placeholder="{{ t('register.email_hint') }}"
                 required
               >
             {% endif %}
@@ -237,14 +239,15 @@
           <div class="form-group">
             <label>{{ t('register.password') }}</label>
             {% if form and form.password %}
-              {{ form.password(class="auth-input", placeholder=t('register.password_placeholder'), id="passwordField") }}
+              {{ form.password(class="auth-input" ~ (" input-error" if form.password.errors else ""), placeholder=t('register.password_hint'), id="passwordField") }}
+              {% if form.password.errors %}<div class="field-errors">{% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="password"
                 name="password"
                 id="passwordField"
                 class="auth-input"
-                placeholder="{{ t('register.password_placeholder') }}"
+                placeholder="{{ t('register.password_hint') }}"
                 required
               >
             {% endif %}
@@ -254,14 +257,15 @@
           <div class="form-group">
             <label>{{ t('register.confirm') }}</label>
             {% if form and form.confirm %}
-              {{ form.confirm(class="auth-input", placeholder=t('register.confirm_placeholder'), id="confirmField") }}
+              {{ form.confirm(class="auth-input" ~ (" input-error" if form.confirm.errors else ""), placeholder=t('register.confirm_hint'), id="confirmField") }}
+              {% if form.confirm.errors %}<div class="field-errors">{% for error in form.confirm.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
             {% else %}
               <input
                 type="password"
                 name="confirm"
                 id="confirmField"
                 class="auth-input"
-                placeholder="{{ t('register.confirm_placeholder') }}"
+                placeholder="{{ t('register.confirm_hint') }}"
                 required
               >
             {% endif %}

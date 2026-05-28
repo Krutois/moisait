@@ -211,7 +211,7 @@
               id="nameField"
               class="contact-input"
               type="text"
-              placeholder="{{ t('contact.form_name_placeholder') }}"
+              placeholder="{{ t('contact.form_name_hint') }}"
               required
             >
           </div>
@@ -222,7 +222,7 @@
               id="emailField"
               class="contact-input"
               type="email"
-              placeholder="{{ t('contact.form_email_placeholder') }}"
+              placeholder="{{ t('contact.form_email_hint') }}"
               required
             >
           </div>
@@ -233,7 +233,7 @@
               id="topicField"
               class="contact-input"
               type="text"
-              placeholder="{{ t('contact.form_topic_placeholder') }}"
+              placeholder="{{ t('contact.form_topic_hint') }}"
               required
             >
           </div>
@@ -243,7 +243,7 @@
             <textarea
               id="messageField"
               class="contact-textarea auto-resize"
-              placeholder="{{ t('contact.form_message_placeholder') }}"
+              placeholder="{{ t('contact.form_message_hint') }}"
               required
             ></textarea>
             <span class="form-helper">
@@ -267,19 +267,13 @@
 
         <div class="contact-cards">
           <div class="contact-card">
-            <div class="contact-icon">✉</div>
+            <div class="contact-icon">@</div>
             <h3>{{ t('contact.card_email') }}</h3>
-            <a href="mailto:blyatmeow.app@gmail.com">blyatmeow@gmail.com</a>
+            <a href="mailto:{{ support_email }}">{{ support_email }}</a>
           </div>
 
           <div class="contact-card">
-            <div class="contact-icon">TG</div>
-            <h3>{{ t('contact.card_telegram') }}</h3>
-            <p>@ybyblya</p>
-          </div>
-
-          <div class="contact-card">
-            <div class="contact-icon">📍</div>
+            <div class="contact-icon" aria-hidden="true">⌖</div>
             <h3>{{ t('contact.card_location') }}</h3>
             <p>{{ t('contact.location_value') }}</p>
           </div>
@@ -322,10 +316,8 @@
   const messageField = document.getElementById("messageField");
 
   function toast(message, type = "info") {
-    if (window.VoiceFlowUI?.toast) {
-      window.VoiceFlowUI.toast(message, type);
-    } else {
-      alert(message);
+    if (window.SmartLectureUI?.toast) {
+      window.SmartLectureUI.toast(message, type);
     }
   }
 
@@ -333,7 +325,7 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  form?.addEventListener("submit", (event) => {
+  form?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name = nameField.value.trim();
@@ -351,8 +343,24 @@
       return;
     }
 
-    toast(TEXTS.sent, "success");
-    form.reset();
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, email, topic, message })
+      });
+      const data = await response.json();
+      if (!response.ok || data.ok === false) {
+        toast(data.error || TEXTS.email, "error");
+        return;
+      }
+      toast(TEXTS.sent, "success");
+      form.reset();
+    } catch (error) {
+      toast(TEXTS.email, "error");
+    }
   });
 })();
 </script>
