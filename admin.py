@@ -5,10 +5,13 @@ from flask_login import current_user
 
 from extensions import db
 from models import ContactMessage, Favorite, Transcription, User, UserStats
+from services.security import is_safe_url
 
 
 def _admin_login_redirect():
-    return redirect(url_for("auth.login", next=request.full_path))
+    if is_safe_url(request.full_path, allow_current_path=True):
+        return redirect(url_for("auth.login", next=request.full_path))
+    return redirect(url_for("auth.login"))
 
 
 class SecureAdminIndexView(AdminIndexView):

@@ -9,6 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from admin import init_admin
 from config import DevelopmentConfig, ProductionConfig
 from extensions import bcrypt, csrf, db, limiter, login_manager, migrate
+from services.security import is_safe_url
 from translations import DEFAULT_LANG, SUPPORTED_LANGS, TRANSLATIONS
 
 
@@ -219,7 +220,9 @@ def create_app(config_overrides=None):
     def load_user(user_id):
         try:
             return db.session.get(User, int(user_id))
-        except (TypeError, ValueError):
+        except Exception:
+            db.session.rollback()
+            session.clear()
             return None
 
     @login_manager.unauthorized_handler
@@ -232,7 +235,10 @@ def create_app(config_overrides=None):
         if request.path.startswith("/api/"):
             return jsonify({"ok": False, "error": message}), 401
         flash(message, "warning")
-        return redirect(url_for("auth.login", next=request.full_path))
+        next_url = request.full_path if is_safe_url(request.full_path, allow_current_path=True) else None
+        if next_url:
+            return redirect(url_for("auth.login", next=next_url))
+        return redirect(url_for("auth.login"))
 
     @app.context_processor
     def inject_i18n():
@@ -282,7 +288,12 @@ def create_app(config_overrides=None):
         app.logger.exception("Unhandled server error")
         if request.path.startswith("/api/"):
             return jsonify({"ok": False, "error": "Internal server error"}), 500
-        return render_template("500.html"), 500
+        try:
+            return render_template("500.html"), 500
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Failed to render 500 page")
+            return "<h1>500 Internal Server Error</h1>", 500
 
     @app.errorhandler(Exception)
     def handle_exception(error):

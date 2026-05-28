@@ -10,9 +10,9 @@ from sqlalchemy import func
 
 from extensions import db
 from models import ContactMessage, Favorite, LectureSession, Transcription, User, utc_now
+from services.security import safe_redirect_target
 from services.url_service import public_url_for
 from translations import SUPPORTED_LANGS, DEFAULT_LANG
-from routes.auth import is_safe_url
 
 bp = Blueprint("main", __name__)
 
@@ -149,7 +149,9 @@ def set_language(lang):
         lang = DEFAULT_LANG
 
     session["lang"] = lang
-    target = request.referrer
-    if not is_safe_url(target):
-        target = url_for("main.index")
+    target = safe_redirect_target(
+        request.referrer,
+        url_for("main.index"),
+        allow_current_path=True,
+    )
     return redirect(target)

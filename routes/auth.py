@@ -1,22 +1,13 @@
-from urllib.parse import urljoin, urlparse
-
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from extensions import bcrypt, db, limiter
 from forms import DeleteAccountForm, LoginForm, RegistrationForm, SettingsForm
 from models import User
+from services.security import safe_redirect_target
 from translations import DEFAULT_LANG, TRANSLATIONS
 
 bp = Blueprint("auth", __name__)
-
-
-def is_safe_url(target):
-    if not target:
-        return False
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in {"http", "https"} and ref_url.netloc == test_url.netloc
 
 
 def tr(key):
@@ -52,7 +43,7 @@ def localize_form_errors(form):
 @limiter.limit("10 per minute")
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("main.profile"))
+        return redirect(url_for("main.workspace"))
 
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -86,7 +77,7 @@ def register():
 @limiter.limit("15 per minute")
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.profile"))
+        return redirect(url_for("main.workspace"))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -100,20 +91,18 @@ def login():
         login_user(user, remember=True)
         flash(tr("flash.welcome"), "success")
 
-        next_page = request.args.get("next")
-        if not is_safe_url(next_page):
-            next_page = url_for("main.profile")
+        next_page = safe_redirect_target(request.args.get("next"), url_for("main.workspace"))
         return redirect(next_page)
 
     localize_form_errors(form)
     return render_template("login.html", form=form)
 
 
-@bp.route("/logout", methods=["POST"])
-@login_required
+@bp.route("/logout", methods=["GET", "POST"])
 def logout():
-    logout_user()
-    flash(tr("flash.signed_out"), "info")
+    if current_user.is_authenticated:
+        logout_user()
+        flash(tr("flash.signed_out"), "info")
     return redirect(url_for("main.index"))
 
 

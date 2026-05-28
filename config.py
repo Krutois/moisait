@@ -20,6 +20,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = normalize_database_url(os.getenv("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
+    SESSION_COOKIE_NAME = "smartlecture_session_v2"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     MAX_CONTENT_LENGTH = 32 * 1024 * 1024

@@ -27,10 +27,11 @@ def test_login_logout(client, app):
 
     response = login(client)
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/profile")
+    assert response.headers["Location"].endswith("/workspace")
 
     response = client.post("/logout", follow_redirects=False)
     assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
 
 
 def test_save_transcription(client, app):
@@ -261,4 +262,34 @@ def test_safe_redirect_after_login(client, app):
 
     response = login(client, next_url="https://evil.example/path")
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/profile")
+    assert response.headers["Location"].endswith("/workspace")
+
+
+def test_login_does_not_redirect_to_itself(client, app):
+    with app.app_context():
+        create_user()
+
+    response = login(client, next_url="/login")
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/workspace")
+
+
+def test_protected_routes_redirect_to_login_once(client):
+    for path in ("/workspace", "/lecture", "/subtitles", "/history", "/favorites", "/profile", "/settings"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+        assert response.headers["Location"].count("/login") == 1
+        assert "next=" in response.headers["Location"]
+
+
+def test_logout_is_safe_without_session(client):
+    response = client.get("/logout", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+
+
+def test_language_redirect_rejects_unsafe_referrer(client):
+    response = client.get("/set-language/en", headers={"Referer": "https://evil.example/path"})
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
