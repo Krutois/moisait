@@ -2,6 +2,7 @@ import logging
 import os
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from sqlalchemy import text
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -9,6 +10,173 @@ from admin import init_admin
 from config import DevelopmentConfig, ProductionConfig
 from extensions import bcrypt, csrf, db, limiter, login_manager, migrate
 from translations import DEFAULT_LANG, SUPPORTED_LANGS, TRANSLATIONS
+
+
+def ensure_database_schema(app):
+    if not app.config.get("AUTO_CREATE_DB", True):
+        return
+
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as exc:
+            app.logger.warning("Database auto-create skipped: %s", exc)
+            return
+
+        if db.engine.dialect.name != "postgresql":
+            return
+
+        statements = [
+            """
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'
+            """,
+            """
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS title VARCHAR(160) NOT NULL DEFAULT 'New recording'
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS summary TEXT
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS summary_type VARCHAR(50) NOT NULL DEFAULT 'lecture'
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS keywords_json JSON NOT NULL DEFAULT '[]'::json
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS tags_json JSON NOT NULL DEFAULT '[]'::json
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS folder VARCHAR(80)
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS language VARCHAR(20) NOT NULL DEFAULT 'ru-RU'
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS source VARCHAR(50) NOT NULL DEFAULT 'speech'
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS duration INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS word_count INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE transcriptions
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE user_stats
+            ADD COLUMN IF NOT EXISTS total_time INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE user_stats
+            ADD COLUMN IF NOT EXISTS total_words INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE user_stats
+            ADD COLUMN IF NOT EXISTS daily_stats JSON NOT NULL DEFAULT '{}'::json
+            """,
+            """
+            ALTER TABLE user_stats
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE user_stats
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE contact_messages
+            ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'new'
+            """,
+            """
+            ALTER TABLE contact_messages
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE contact_messages
+            ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ
+            """,
+            """
+            ALTER TABLE favorites
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS owner_id INTEGER
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS caption TEXT NOT NULL DEFAULT ''
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS text TEXT NOT NULL DEFAULT ''
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS status VARCHAR(40) NOT NULL DEFAULT 'ready'
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS seconds INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS words INTEGER NOT NULL DEFAULT 0
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS language VARCHAR(20) NOT NULL DEFAULT 'ru-RU'
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            """,
+            """
+            ALTER TABLE lecture_sessions
+            ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '12 hours')
+            """,
+        ]
+
+        try:
+            for statement in statements:
+                db.session.execute(text(statement))
+            db.session.commit()
+            app.logger.info("Database schema checked and updated")
+        except Exception as exc:
+            db.session.rollback()
+            app.logger.exception("Database schema update failed: %s", exc)
 
 
 def create_app(config_overrides=None):
@@ -100,12 +268,7 @@ def create_app(config_overrides=None):
 
     init_admin(app)
 
-    if app.config.get("AUTO_CREATE_DB", True):
-        with app.app_context():
-            try:
-                db.create_all()
-            except Exception as exc:
-                app.logger.warning("Database auto-create skipped: %s", exc)
+    ensure_database_schema(app)
 
     @app.errorhandler(404)
     def not_found(error):
