@@ -37,6 +37,56 @@
   .qr-link { margin-top: 8px; color: #dbe7ff; font-size: 13px; word-break: break-all; }
   .qr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .qr-error { margin-top: 10px; color: #fecaca; font-size: 13px; font-weight: 700; }
+  .qr-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    padding: clamp(16px, 4vw, 44px);
+    background: rgba(2, 6, 23, 0.94);
+    backdrop-filter: blur(14px);
+  }
+  .qr-fullscreen[hidden] { display: none; }
+  .qr-fullscreen:fullscreen { background: #020617; }
+  .qr-fullscreen-panel {
+    width: min(96vw, 980px);
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+  }
+  .qr-fullscreen-frame {
+    width: min(82vw, 82vh, 820px);
+    aspect-ratio: 1;
+    padding: clamp(14px, 3vw, 26px);
+    border-radius: 24px;
+    background: #ffffff;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+  }
+  .qr-fullscreen-frame img { width: 100%; height: 100%; display: block; }
+  .qr-fullscreen-link {
+    max-width: min(820px, 92vw);
+    color: #dbe7ff;
+    text-align: center;
+    word-break: break-all;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .qr-fullscreen-close {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #ffffff;
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .qr-fullscreen-close:hover { background: rgba(255,255,255,0.18); }
 
   .quality-item { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); color: #dbe7ff; font-weight: 750; }
   .quality-dot { width: 11px; height: 11px; border-radius: 999px; background: #64748b; flex: 0 0 auto; }
@@ -82,6 +132,7 @@
   @media (max-width: 620px) {
     .lecture-metrics { grid-template-columns: 1fr; }
     .lecture-screen { min-height: 56vh; border-radius: 16px; }
+    .qr-fullscreen-frame { width: min(90vw, 74vh); border-radius: 18px; }
   }
 </style>
 {% endblock %}
@@ -127,6 +178,16 @@
           <div class="onboarding-step"><span>3</span>{{ t('lecture.onboarding_3') }}</div>
           <div class="onboarding-step"><span>4</span>{{ t('lecture.onboarding_4') }}</div>
         </div>
+      </div>
+    </div>
+
+    <div class="qr-fullscreen" id="lectureQrFullscreen" hidden aria-modal="true" role="dialog" aria-label="{{ t('lecture.open_qr') }}">
+      <button class="qr-fullscreen-close" id="lectureQrCloseBtn" type="button" aria-label="{{ t('history.close') }}">&times;</button>
+      <div class="qr-fullscreen-panel">
+        <div class="qr-fullscreen-frame">
+          <img id="lectureQrFullscreenImage" alt="{{ t('lecture.qr_alt') }}">
+        </div>
+        <a class="qr-fullscreen-link" id="lectureQrFullscreenLink" href="#" target="_blank" rel="noopener"></a>
       </div>
     </div>
 
@@ -248,6 +309,8 @@
   const qualityMic = $("qualityMic"), qualityRecording = $("qualityRecording"), qualitySound = $("qualitySound"), qualityRecognition = $("qualityRecognition");
   const shareLink = $("lectureShareLink"), qrImage = $("lectureQrImage"), qrBox = $("lectureQrBox");
   const copyLinkBtn = $("lectureCopyLinkBtn"), openQrBtn = $("lectureOpenQrBtn"), qrError = $("lectureQrError");
+  const qrFullscreen = $("lectureQrFullscreen"), qrCloseBtn = $("lectureQrCloseBtn");
+  const qrFullscreenImage = $("lectureQrFullscreenImage"), qrFullscreenLink = $("lectureQrFullscreenLink");
 
   let recognition = null, isRecording = false, finalText = "", seconds = 0, timer = null, savedId = null;
   let segments = [], lectureSessionId = null, lectureJoinUrl = "", lectureQrUrl = "";
@@ -266,6 +329,9 @@
       openQrBtn.setAttribute("aria-disabled", "false");
       copyLinkBtn.disabled = false;
       qrImage.src = payload.data.qr_url;
+      qrFullscreenImage.src = payload.data.qr_url;
+      qrFullscreenLink.href = lectureJoinUrl;
+      qrFullscreenLink.textContent = lectureJoinUrl;
       qrBox.hidden = false;
       qrError.hidden = true;
     } catch (error) {
@@ -275,6 +341,23 @@
       qrError.textContent = TEXTS.sessionFailed;
       qrError.hidden = false;
     }
+  }
+
+  async function openQrFullscreen(event) {
+    event?.preventDefault();
+    if (!lectureQrUrl || openQrBtn.getAttribute("aria-disabled") === "true") return;
+    qrFullscreen.hidden = false;
+    qrCloseBtn.focus();
+    try {
+      if (!document.fullscreenElement) await qrFullscreen.requestFullscreen?.();
+    } catch (error) {}
+  }
+
+  async function closeQrFullscreen() {
+    if (document.fullscreenElement === qrFullscreen) {
+      try { await document.exitFullscreen?.(); } catch (error) {}
+    }
+    qrFullscreen.hidden = true;
   }
 
   async function publishLecture(statusText = "ready") {
@@ -467,8 +550,18 @@
     await navigator.clipboard.writeText(lectureJoinUrl);
     setStatus(TEXTS.copied, false);
   });
+  openQrBtn.addEventListener("click", openQrFullscreen);
+  qrCloseBtn.addEventListener("click", closeQrFullscreen);
+  qrFullscreen.addEventListener("click", (event) => {
+    if (event.target === qrFullscreen) closeQrFullscreen();
+  });
   qrImage.addEventListener("error", () => {
     qrBox.hidden = true;
+    qrError.textContent = TEXTS.qrFailed;
+    qrError.hidden = false;
+  });
+  qrFullscreenImage.addEventListener("error", () => {
+    closeQrFullscreen();
     qrError.textContent = TEXTS.qrFailed;
     qrError.hidden = false;
   });
@@ -486,9 +579,13 @@
     const tag = event.target?.tagName?.toLowerCase();
     if (["input", "textarea", "select"].includes(tag)) return;
     if (event.code === "Space") { event.preventDefault(); isRecording ? stopLecture() : startLecture(); }
+    if (event.key === "Escape" && !qrFullscreen.hidden) { event.preventDefault(); await closeQrFullscreen(); }
     if (event.ctrlKey && event.key.toLowerCase() === "s") { event.preventDefault(); await saveLecture(); }
     if (event.key.toLowerCase() === "f") { event.preventDefault(); fullscreenBtn.click(); }
     if (event.ctrlKey && event.key.toLowerCase() === "c") { event.preventDefault(); await navigator.clipboard.writeText(timestampedText()); setStatus(TEXTS.copied, false); }
+  });
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && !qrFullscreen.hidden) qrFullscreen.hidden = true;
   });
 
   ["smartlectureLectureFont", "smartlectureLectureContrast", "smartlectureLectureBg"].forEach((key) => {
