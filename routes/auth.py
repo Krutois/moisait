@@ -3,7 +3,7 @@ from hmac import compare_digest
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from extensions import bcrypt, db, limiter
+from extensions import bcrypt, csrf, db, limiter
 from forms import DeleteAccountForm, LoginForm, RegistrationForm, SettingsForm
 from models import User
 from services.security import safe_redirect_target
@@ -48,12 +48,13 @@ def valid_admin_setup_token(token):
 
 @bp.route("/setup-admin", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
+@csrf.exempt
 def setup_admin():
     token = request.values.get("token", "")
     if not valid_admin_setup_token(token):
         abort(404)
 
-    form = RegistrationForm()
+    form = RegistrationForm(meta={"csrf": False})
     if form.validate_on_submit():
         username = form.username.data.strip()
         email = form.email.data.strip().lower()
