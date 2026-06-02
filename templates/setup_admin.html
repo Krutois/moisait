@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ t('setup_admin.page_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-layout { min-height: calc(100vh - 180px); display: grid; place-items: center; }
+  .auth-shell { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+  .auth-panel { padding: 28px; border-radius: 30px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); box-shadow: 0 16px 44px rgba(0,0,0,0.24); }
+  .auth-form-panel { display: flex; flex-direction: column; justify-content: center; }
+  .auth-top { margin-bottom: 20px; }
+  .auth-top h1, .auth-side h2 { margin: 12px 0 8px; font-size: clamp(30px, 4vw, 42px); line-height: 1.02; }
+  .auth-top p, .auth-side p { margin: 0; color: var(--muted); line-height: 1.72; }
+  .auth-form { display: grid; gap: 14px; }
+  .form-group { display: grid; gap: 8px; }
+  .form-group label { color: #dbe7ff; font-size: 14px; font-weight: 600; }
+  .auth-input { width: 100%; padding: 15px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: white; outline: none; }
+  .auth-input:focus { border-color: rgba(124,58,237,0.55); box-shadow: 0 0 0 4px rgba(124,58,237,0.12); }
+  .auth-helper { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .auth-actions { display: grid; gap: 10px; margin-top: 6px; }
+  .auth-side { background: rgba(255,255,255,0.05); }
+  .auth-note { margin-top: 16px; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #dbe7ff; font-size: 14px; line-height: 1.65; }
+  @media (max-width: 980px) { .auth-shell { grid-template-columns: 1fr; } .auth-layout { min-height: auto; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section auth-layout">
+  <div class="container">
+    <div class="auth-shell">
+      <div class="auth-panel auth-form-panel">
+        <div class="auth-top">
+          <span class="badge">{{ t('setup_admin.badge') }}</span>
+          <h1>{{ t('setup_admin.title') }}</h1>
+          <p>{{ t('setup_admin.subtitle') }}</p>
+        </div>
+
+        <form method="POST" class="auth-form">
+          {{ form.hidden_tag() }}
+          <input type="hidden" name="token" value="{{ token }}">
+
+          <div class="form-group">
+            <label>{{ t('register.username') }}</label>
+            {{ form.username(class="auth-input" ~ (" input-error" if form.username.errors else ""), placeholder=t('register.username_hint')) }}
+            {% if form.username.errors %}<div class="field-errors">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.email') }}</label>
+            {{ form.email(class="auth-input" ~ (" input-error" if form.email.errors else ""), placeholder=t('register.email_hint')) }}
+            {% if form.email.errors %}<div class="field-errors">{% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.password') }}</label>
+            {{ form.password(class="auth-input" ~ (" input-error" if form.password.errors else ""), placeholder=t('register.password_hint')) }}
+            {% if form.password.errors %}<div class="field-errors">{% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+            <span class="auth-helper">{{ t('register.password_helper') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label>{{ t('register.confirm') }}</label>
+            {{ form.confirm(class="auth-input" ~ (" input-error" if form.confirm.errors else ""), placeholder=t('register.confirm_hint')) }}
+            {% if form.confirm.errors %}<div class="field-errors">{% for error in form.confirm.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="auth-actions">
+            <button type="submit" class="btn btn-primary full">{{ t('setup_admin.submit') }}</button>
+            <a href="{{ url_for('main.index') }}" class="btn btn-soft full">{{ t('register.back') }}</a>
+          </div>
+        </form>
+      </div>
+
+      <div class="auth-panel auth-side">
+        <span class="badge">{{ t('setup_admin.side_badge') }}</span>
+        <h2>{{ t('setup_admin.side_title') }}</h2>
+        <p>{{ t('setup_admin.side_text') }}</p>
+        <div class="auth-note">{{ t('setup_admin.note') }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

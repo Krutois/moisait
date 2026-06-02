@@ -30,6 +30,7 @@ class Config:
     OPENAI_AUDIO_MODEL = os.getenv("OPENAI_AUDIO_MODEL", "gpt-4o-mini-transcribe")
     AI_MAX_INPUT_CHARS = int(os.getenv("AI_MAX_INPUT_CHARS", "20000"))
     AUTO_CREATE_DB = os.getenv("AUTO_CREATE_DB", "true").lower() not in {"0", "false", "no"}
+    ADMIN_SETUP_TOKEN = os.getenv("ADMIN_SETUP_TOKEN", "")
 
 
 class DevelopmentConfig(Config):

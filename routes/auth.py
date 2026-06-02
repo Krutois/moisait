@@ -1,4 +1,6 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from hmac import compare_digest
+
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from extensions import bcrypt, db, limiter
@@ -37,6 +39,54 @@ ERROR_KEYS = {
 def localize_form_errors(form):
     for field in form:
         field.errors = [tr(ERROR_KEYS.get(error, error)) for error in field.errors]
+
+
+def valid_admin_setup_token(token):
+    expected = current_app.config.get("ADMIN_SETUP_TOKEN", "")
+    return bool(expected and token and compare_digest(str(expected), str(token)))
+
+
+@bp.route("/setup-admin", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def setup_admin():
+    token = request.values.get("token", "")
+    if not valid_admin_setup_token(token):
+        abort(404)
+
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        email = form.email.data.strip().lower()
+        password_hash = bcrypt.generate_password_hash(form.password.data).decode("utf-8")
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            if User.query.filter(User.username == username, User.id != user.id).first():
+                flash(tr("flash.username_taken"), "danger")
+                return render_template("setup_admin.html", form=form, token=token)
+            user.username = username
+            user.password_hash = password_hash
+            user.role = "admin"
+            flash(tr("setup_admin.promoted"), "success")
+        else:
+            if User.query.filter_by(username=username).first():
+                flash(tr("flash.username_taken"), "danger")
+                return render_template("setup_admin.html", form=form, token=token)
+            user = User(
+                username=username,
+                email=email,
+                role="admin",
+                password_hash=password_hash,
+            )
+            db.session.add(user)
+            flash(tr("setup_admin.created"), "success")
+
+        db.session.commit()
+        login_user(user, remember=True)
+        return redirect(url_for("main.admin_dashboard"))
+
+    localize_form_errors(form)
+    return render_template("setup_admin.html", form=form, token=token)
 
 
 @bp.route("/register", methods=["GET", "POST"])

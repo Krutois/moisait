@@ -2699,3 +2699,48 @@ ADMIN_AND_SUMMARY_FIXES = {
 for _lang, _values in ADMIN_AND_SUMMARY_FIXES.items():
     TRANSLATIONS[_lang].update(_values)
 
+ADMIN_SETUP_TEXT = {
+    "ru": {
+        "setup_admin.page_title": "SmartLecture - создание администратора",
+        "setup_admin.badge": "Настройка",
+        "setup_admin.title": "Создать администратора",
+        "setup_admin.subtitle": "Эта страница работает только с секретным токеном из Render.",
+        "setup_admin.submit": "Сохранить администратора",
+        "setup_admin.side_badge": "Render",
+        "setup_admin.side_title": "Временный доступ без Shell",
+        "setup_admin.side_text": "Создайте администратора через браузер, затем удалите ADMIN_SETUP_TOKEN в Render.",
+        "setup_admin.note": "Если пользователь с таким email уже есть, он станет администратором, а пароль обновится.",
+        "setup_admin.created": "Администратор создан.",
+        "setup_admin.promoted": "Пользователь повышен до администратора.",
+    },
+    "kk": {
+        "setup_admin.page_title": "SmartLecture - әкімші жасау",
+        "setup_admin.badge": "Баптау",
+        "setup_admin.title": "Әкімші жасау",
+        "setup_admin.subtitle": "Бұл бет Render-дегі құпия токен болса ғана жұмыс істейді.",
+        "setup_admin.submit": "Әкімшіні сақтау",
+        "setup_admin.side_badge": "Render",
+        "setup_admin.side_title": "Shell жоқ уақытша қолжетімділік",
+        "setup_admin.side_text": "Әкімшіні браузер арқылы жасаңыз, содан кейін Render-ден ADMIN_SETUP_TOKEN мәнін өшіріңіз.",
+        "setup_admin.note": "Осы email бар пайдаланушы болса, ол әкімші болады және паролі жаңарады.",
+        "setup_admin.created": "Әкімші жасалды.",
+        "setup_admin.promoted": "Пайдаланушы әкімшіге көтерілді.",
+    },
+    "en": {
+        "setup_admin.page_title": "SmartLecture - admin setup",
+        "setup_admin.badge": "Setup",
+        "setup_admin.title": "Create administrator",
+        "setup_admin.subtitle": "This page works only with the secret token from Render.",
+        "setup_admin.submit": "Save administrator",
+        "setup_admin.side_badge": "Render",
+        "setup_admin.side_title": "Temporary access without Shell",
+        "setup_admin.side_text": "Create an administrator in the browser, then remove ADMIN_SETUP_TOKEN in Render.",
+        "setup_admin.note": "If a user with this email already exists, they will become an admin and their password will be updated.",
+        "setup_admin.created": "Administrator created.",
+        "setup_admin.promoted": "User promoted to administrator.",
+    },
+}
+
+for _lang, _values in ADMIN_SETUP_TEXT.items():
+    TRANSLATIONS[_lang].update(_values)
+

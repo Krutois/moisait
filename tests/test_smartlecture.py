@@ -1,7 +1,7 @@
 from io import BytesIO
 
 from extensions import db
-from models import ContactMessage, Favorite, LectureSession, Transcription
+from models import ContactMessage, Favorite, LectureSession, Transcription, User
 from services.ai_service import AIService
 from tests.conftest import create_user, login
 
@@ -229,6 +229,33 @@ def test_admin_dashboard_permissions(client, app):
     login(client, "admin")
     allowed = client.get("/admin-dashboard")
     assert allowed.status_code == 200
+
+
+def test_admin_setup_requires_token(client):
+    response = client.get("/setup-admin")
+    assert response.status_code == 404
+
+
+def test_admin_setup_creates_admin(client, app):
+    app.config["ADMIN_SETUP_TOKEN"] = "secret-token"
+    response = client.post(
+        "/setup-admin",
+        data={
+            "token": "secret-token",
+            "username": "renderadmin",
+            "email": "renderadmin@example.com",
+            "password": "password123",
+            "confirm": "password123",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/admin-dashboard")
+    with app.app_context():
+        user = User.query.filter_by(email="renderadmin@example.com").first()
+        assert user is not None
+        assert user.role == "admin"
 
 
 def test_ai_fallback_without_openai_key(monkeypatch):
