@@ -8,6 +8,11 @@
       <span class="badge">{{ t('admin.badge') }}</span>
       <h1>{{ t('admin.title') }}</h1>
       <p>{{ t('admin.subtitle') }}</p>
+      <div class="toolbar" style="margin-top: 16px;">
+        <a class="btn btn-primary" href="/admin">{{ t('admin.open_full_admin') }}</a>
+        <a class="btn btn-soft" href="/admin/user/">{{ t('admin.open_users_table') }}</a>
+        <a class="btn btn-soft" href="/admin/transcription/">{{ t('admin.open_transcriptions_table') }}</a>
+      </div>
     </div>
 
     <div class="admin-metrics">

@@ -136,9 +136,9 @@ def admin_dashboard():
         "favorites_count": Favorite.query.count(),
         "contact_messages_count": ContactMessage.query.count(),
         "activity_last_7_days": activity,
-        "latest_users": User.query.order_by(User.created_at.desc()).limit(5).all(),
-        "latest_transcriptions": Transcription.query.order_by(Transcription.created_at.desc()).limit(5).all(),
-        "latest_contact_messages": ContactMessage.query.order_by(ContactMessage.created_at.desc()).limit(5).all(),
+        "latest_users": User.query.order_by(User.created_at.desc()).limit(20).all(),
+        "latest_transcriptions": Transcription.query.order_by(Transcription.created_at.desc()).limit(20).all(),
+        "latest_contact_messages": ContactMessage.query.order_by(ContactMessage.created_at.desc()).limit(20).all(),
     }
     return render_template("admin_dashboard.html", dashboard=data)
 

@@ -2667,3 +2667,35 @@ FINAL_LANGUAGE_FIXES = {
 for _lang, _values in FINAL_LANGUAGE_FIXES.items():
     TRANSLATIONS[_lang].update(_values)
 
+ADMIN_AND_SUMMARY_FIXES = {
+    "ru": {
+        "admin.subtitle": "Обзор пользователей, расшифровок, избранного, сообщений поддержки и последней активности. Полные таблицы доступны через Flask-админку.",
+        "admin.open_full_admin": "Открыть всю админку",
+        "admin.open_users_table": "Пользователи",
+        "admin.open_transcriptions_table": "Расшифровки",
+        "lecture.summary_short": "Краткое содержание",
+        "lecture.summary_points": "Основные мысли",
+        "lecture.summary_keywords": "Ключевые слова",
+        "lecture.summary_questions": "Вопросы для повторения",
+    },
+    "kk": {
+        "admin.subtitle": "Пайдаланушылар, мәтіндер, таңдаулылар, қолдау хабарламалары және соңғы белсенділік шолуы. Толық кестелер Flask әкімшілігінде қолжетімді.",
+        "admin.open_full_admin": "Толық әкімшілікті ашу",
+        "admin.open_users_table": "Пайдаланушылар",
+        "admin.open_transcriptions_table": "Мәтіндер",
+    },
+    "en": {
+        "admin.subtitle": "System overview for users, transcripts, favorites, support messages and recent activity. Full tables are available in Flask-Admin.",
+        "admin.open_full_admin": "Open full admin",
+        "admin.open_users_table": "Users",
+        "admin.open_transcriptions_table": "Transcriptions",
+        "lecture.summary_short": "Short summary",
+        "lecture.summary_points": "Main points",
+        "lecture.summary_keywords": "Keywords",
+        "lecture.summary_questions": "Review questions",
+    },
+}
+
+for _lang, _values in ADMIN_AND_SUMMARY_FIXES.items():
+    TRANSLATIONS[_lang].update(_values)
+

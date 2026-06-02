@@ -56,6 +56,31 @@ flask --app app:create_app db upgrade
 flask --app app:create_app run
 ```
 
+## Admin and Database
+
+Run the app, then open:
+
+- `http://127.0.0.1:5000/admin-dashboard` for the project admin overview.
+- `http://127.0.0.1:5000/admin` for full Flask-Admin database tables.
+
+Create an admin account:
+
+```bash
+flask --app app:create_app create-admin
+```
+
+The local SQLite database is stored at:
+
+```text
+instance/smartlecture.db
+```
+
+Open it with DB Browser for SQLite, SQLite Viewer, or from the terminal:
+
+```bash
+python -m sqlite3 instance/smartlecture.db
+```
+
 Example environment:
 
 ```env
